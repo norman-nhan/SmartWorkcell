@@ -18,7 +18,6 @@ class Move2Goal:
         self.display_traj_publisher = rospy.Publisher('/move_group/display_planned_path',
                                                  moveit_msgs.msg.DisplayTrajectory,
                                                  queue_size=20)
-
         # ======================= #
         # PRINT BASIC INFORMATION #
         # ======================= #
