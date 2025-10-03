@@ -1,7 +1,8 @@
 # SmartWorkcell
 ## (Optional) Auto-completetion for ROS python libraries
 1. Press `Ctrl + Shift + P` -> Choose `Preferences: Open Workspace Settings (JSON)`
-2. Add `"/opt/ros/noetic/lib/python3/dist-packages"` to `python.analysis.extraPaths` in `settings.json`.
+   OR open `.vscode/settings.json` file in your working-dir.
+3. Add `"/opt/ros/noetic/lib/python3/dist-packages"` to `python.analysis.extraPaths` in `settings.json`.
   
 Example:
 ```json
