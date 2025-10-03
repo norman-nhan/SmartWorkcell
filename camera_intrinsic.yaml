@@ -1,0 +1,8 @@
+width: 640
+height: 480
+fx: 386.8893737792969
+fy: 386.8893737792969
+ppx (cx): 321.6220703125
+ppy (cy): 240.8651123046875
+distortion_model: distortion.brown_conrady
+distortion_coefficients: [0.0, 0.0, 0.0, 0.0, 0.0]
