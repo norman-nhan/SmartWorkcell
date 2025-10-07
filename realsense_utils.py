@@ -5,7 +5,7 @@ import cv2
 import os
 import argparse
 
-class RealsenseCamera():
+class RealsenseCameraNode():
     def __init__(self, serial_number=None, image_save_dir="images/test"):
         self.ctx = rs.context()
         devices = self.ctx.query_devices()
@@ -33,7 +33,7 @@ class RealsenseCamera():
         self.config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30) # depth in 16bit format
 
         # Create folder to save images
-        self.image_save_dir = image_save_dir  
+        self.image_save_dir = image_save_dir
         if not os.path.exists(self.image_save_dir):
             os.makedirs(self.image_save_dir)
 
@@ -53,7 +53,7 @@ class RealsenseCamera():
         np.save(depth_map_path, depth_map)
         print(f"[INFO] Saved color image to {color_path} depth colored image to {depth_path} and depth map to {depth_map_path}")
 
-    def streaming(self):
+    def streaming(self, callback=None):
         # Start streaming
         self.pipeline.start(self.config)
         profile = self.pipeline.get_active_profile()
@@ -73,6 +73,10 @@ class RealsenseCamera():
                 color_image = np.asanyarray(color_frame.get_data())
                 depth_image = np.asanyarray(self.colorizer.colorize(depth_frame).get_data())
                 depth_map = np.asanyarray(depth_frame.get_data())
+
+                # Detect aruco pose callback
+                if callback:
+                    callback(color_image)
 
                 # Stack images side by side
                 images = np.hstack((color_image, depth_image))
@@ -102,5 +106,5 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--image_save_dir", type=str, default="images/test")
     args = parser.parse_args()
     
-    rsCam = RealsenseCamera(serial_number=args.serial_number, image_save_dir=args.image_save_dir)
+    rsCam = RealsenseCameraNode(serial_number=args.serial_number, image_save_dir=args.image_save_dir)
     rsCam.streaming()

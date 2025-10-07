@@ -1,5 +1,3 @@
-import os
-import glob
 import yaml
 import argparse
 import cv2
@@ -61,26 +59,24 @@ class ArucoDetectionNode:
     def estimate_marker_pose(self, frame):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         corners, ids, rejected = self.detector.detectMarkers(gray)
-        print(f"detectMarkers: {ids}, {corners}")
+        print(f"detectMarkers: {ids}, \n{corners}")
         if ids is not None:
             aruco.drawDetectedMarkers(frame, corners, ids)
             rvecs, tvecs = self.estimatePoseSingleMarkers(corners)
         
             for rvec, tvec in zip(rvecs, tvecs):
                 cv2.drawFrameAxes(
-                    frame, self.cam_matrix, self.dist_coeffs, rvec, tvec, self.marker_length/2.0
+                    frame, self.cam_matrix, self.dist_coeffs, rvec, tvec, self.marker_length/2
                 )
                 print(f"ID: {ids}  rvec: {rvec.ravel()}  tvec: {tvec.ravel()}")
-    
+                # print(f"ID: {ids}  rvec: {rvec}  tvec: {tvec}")
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--dictionary", type=str, default="DICT_4X4_50", help="Example: DICT_7X7_1000")
     parser.add_argument("-l", "--marker_length", type=float, default=0.1, help="Aruco marker length in meters")
     parser.add_argument("-p", "--calibration_path", type=str, default="config/origin_camera_intrinsic.yaml")
     parser.add_argument("-rs", "--realsense", action="store_true", help="Use RealSense camera as streaming device.")
-    parser.add_argument("-i", "--image_dir", type=str, default="images/aruco/input", help="This flags only works if --no_camera is True")
-    parser.add_argument("-o", "--save_dir", type=str, default="images/aruco/results", help="This flags only works if --no_camera is True")
-    parser.add_argument("--no_camera", type=str, help="Use saved images as input")
     args = parser.parse_args()
 
     node = ArucoDetectionNode(
@@ -88,39 +84,10 @@ def main():
         marker_length=args.marker_length, # in meters
         calibration_path=args.calibration_path
     )
-    # If saved images used as input
-    if args.no_camera:
-        if args.image_dir is not None:
-            images = glob.glob(os.path.join(args.image_dir, "*"))
-            if len(images) == 0:
-                raise ValueError("[ERROR] Images dir is empty!")
-            for fname in images:
-                frame = cv2.imread(fname).copy()
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                corners, ids, rejected = node.detector.detectMarkers(gray)
-                print(f"detectMarkers: {ids}, {corners}")
-                if ids is not None:
-                    aruco.drawDetectedMarkers(frame, corners, ids)
-                    rvecs, tvecs = node.estimatePoseSingleMarkers(corners)
-                
-                    for rvec, tvec in zip(rvecs, tvecs):
-                        distance = np.linalg.norm(tvec)
-                        axis_len = min(0.02, distance * 0.2)  # 20% of distance, max 5 cm
-                        cv2.drawFrameAxes(
-                            frame, node.cam_matrix, node.dist_coeffs, rvec, tvec, axis_len
-                        )
-                        cv2.imshow("aruco pose", frame)
-                        print(f"ID: {ids}  rvec: {rvec.ravel()}  tvec: {tvec.ravel()}")
-                cv2.waitKey(20000)
-            cv2.destroyAllWindows()
-        else:
-            print("[ERROR] Please provide images or video!")
-    # If RealSense camera used as input
-    elif args.realsense:
+    if args.realsense:
         print("[INFO] Using RealSense camera")
         rscam = RealsenseCameraNode()
         rscam.streaming(callback=node.estimate_marker_pose)
-    # If USB cam used as input
     else:
         cap = cv2.VideoCapture(1) # For MacOS, if 0 is not work, change to 1.
         try:

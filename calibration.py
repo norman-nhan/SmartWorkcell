@@ -21,7 +21,7 @@ class ChessboardCalibration():
         self.empty_objp = np.zeros((n_rows * n_cols, 3), np.float32)
         self.empty_objp[:, :2] = np.mgrid[0:n_rows, 0:n_cols].T.reshape(-1, 2) # z-coord is at 0
 
-    def save_calib_data(self, camera_matrix, dist_coeffs, overall_rms):
+    def save_ca1ib_data(self, camera_matrix, dist_coeffs, overall_rms):
         np_path = os.path.join(os.getcwd(), "camera_calibration.npz")
         np.savez(np_path, camera_matrix=camera_matrix, dist_coeffs=dist_coeffs, overall_rms=overall_rms)
         
@@ -93,7 +93,7 @@ class ChessboardCalibration():
         print(f"[INFO] Overall RMS: {overall_rms}")
 
         # Save to file
-        self.save_calib_data(camera_matrix=camera_matrix, dist_coeffs=dist_coeffs, overall_rms=overall_rms)
+        self.save_ca1ib_data(camera_matrix=camera_matrix, dist_coeffs=dist_coeffs, overall_rms=overall_rms)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
