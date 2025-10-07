@@ -1,5 +1,5 @@
 __pycache__
 .vscode/
 .DS_Store
-calibration_images/
-detected_chessboard_images/
+images/
+config/

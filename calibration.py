@@ -97,7 +97,7 @@ class ChessboardCalibration():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--chessboard_size", type=int, nargs=2)
+    parser.add_argument("-s", "--chessboard_size", type=int, nargs=2, metavar=("COLS", "ROWS"))
     parser.add_argument("-i", "--image_dir", type=str, default="images/calibration/input")
     parser.add_argument("-o", "--save_dir", type=str, default="images/calibration/results")
     args = parser.parse_args()
