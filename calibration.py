@@ -7,100 +7,150 @@ from pathlib import Path
 import argparse
 
 class ChessboardCalibration():
-    def __init__(self, chessboard_size, image_dir, save_dir):
+    def __init__(self, chessboard_size, image_dir, save_dir, square_size=0.02, show=False):
         self.chessboard_size = chessboard_size
         self.image_dir = image_dir
         self.save_dir = save_dir
+        self.square_size = square_size
+        self.show = show
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
             print(f'[INFO] Created directory: {self.save_dir}')
         self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001) # Criteria for corner refinement
+        # Prepare 3D points in real-world space (z=0 plane).
+        # OpenCV expects patternSize = (points_per_row, points_per_column) == (cols, rows)
+        # so we follow the common tutorial convention and use mgrid[0:cols, 0:rows].
+        cols, rows = self.chessboard_size
+        print(f'[DEBUG] chessboard_size interpreted as (cols, rows) = ({cols}, {rows})')
+        self.empty_objp = np.zeros((rows * cols, 3), np.float32)
+        # Use the canonical ordering used in OpenCV samples: np.mgrid[0:cols, 0:rows]
+        # This produces (cols, rows, 2) which after transpose gives point list ordered
+        # left-to-right then top-to-bottom matching findChessboardCorners.
+        objp = np.mgrid[0:cols, 0:rows].T.reshape(-1, 2).astype(np.float32)
+        self.empty_objp[:, :2] = objp * self.square_size
 
-        # Prepare 3D points in real-world space (z=0 plane)
-        n_cols, n_rows = self.chessboard_size
-        self.empty_objp = np.zeros((n_rows * n_cols, 3), np.float32)
-        self.empty_objp[:, :2] = np.mgrid[0:n_rows, 0:n_cols].T.reshape(-1, 2) # z-coord is at 0
-
-    def save_ca1ib_data(self, camera_matrix, dist_coeffs, overall_rms):
-        np_path = os.path.join(os.getcwd(), "camera_calibration.npz")
+    def save_calib_data(self, camera_matrix, dist_coeffs, overall_rms):
+        # Save into the configured save_dir rather than cwd
+        np_path = os.path.join(self.save_dir, "camera_calibration.npz")
         np.savez(np_path, camera_matrix=camera_matrix, dist_coeffs=dist_coeffs, overall_rms=overall_rms)
-        
+
         calibration_data = {
-            'camera_matrix': camera_matrix.tolist(), # 3x3
-            'dist_coeffs': dist_coeffs.flatten().tolist(), # 1x5
-            'overall_rms': overall_rms
+            'camera_matrix': camera_matrix.tolist(),
+            'dist_coeffs': dist_coeffs.flatten().tolist() if hasattr(dist_coeffs, 'flatten') else list(dist_coeffs),
+            'overall_rms': float(overall_rms)
         }
-        yaml_path = os.path.join(os.getcwd(), "camera_calibration.yaml")
+        yaml_path = os.path.join(self.save_dir, "camera_calibration.yaml")
         with open(yaml_path, 'w') as f:
             yaml.dump(
                 calibration_data,
                 f,
                 sort_keys=False,
-                default_flow_style=None,  # auto: list stays inline if short
-                width=120,                # keeps long lines from wrapping
-                indent=2                  # clean indentation for readability
+                default_flow_style=None,
+                width=120,
+                indent=2
             )
-            print(f'[INFO] Saved calibration data to {yaml_path}')
+        print(f'[INFO] Saved calibration data to {yaml_path}')
 
     def calibrate(self):
         objpoints = []  # 3D points
         imgpoints = []  # 2D points
 
-        # Load all calibration images (change path)
-        images = glob.glob(os.path.join(self.image_dir, "*"))
-        if len(images) == 0: # check if image dir is empty
+        # Gather image files (common extensions)
+        patterns = ["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.tiff"]
+        images = []
+        for p in patterns:
+            images.extend(glob.glob(os.path.join(self.image_dir, p)))
+        images = sorted(images)
+        if len(images) == 0:
             print(f"[ERROR] No images found in {self.image_dir}")
-            return # stop calibration
+            return
 
+        used_image_shape = None
         for fname in images:
             img = cv2.imread(fname)
+            if img is None:
+                print(f"[WARN] Could not read {fname}, skipping")
+                continue
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            # cv2.imshow("debug", gray)
+            # cv2.waitKey(500)
+            # Save image shape for calibrateCamera (must be consistent)
+            if used_image_shape is None:
+                used_image_shape = gray.shape[::-1]
+            elif used_image_shape != gray.shape[::-1]:
+                print(f"[WARN] Image {fname} has different size {gray.shape[::-1]} vs {used_image_shape}, skipping")
+                continue
 
-            # Find chessboard corners
-            patternfound, corners = cv2.findChessboardCorners(gray, self.chessboard_size, None, 
-                                                     flags=cv2.CALIB_CB_ADAPTIVE_THRESH
-                                                        + cv2.CALIB_CB_FAST_CHECK 
-                                                        + cv2.CALIB_CB_NORMALIZE_IMAGE)
-            print(f"[DEBUG] corners found: {corners}")
+            # Find chessboard corners. Remove FAST_CHECK for robustness during calibration.
+            patternfound, corners = cv2.findChessboardCorners(
+                gray, self.chessboard_size,
+                flags=cv2.CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_NORMALIZE_IMAGE
+            )
+            print(f"[DEBUG] {fname} - pattern found: {patternfound}")
 
             if patternfound:
-                objpoints.append(self.empty_objp)
+                # store a copy of object points for each image
+                objpoints.append(self.empty_objp.copy())
 
                 # Refine corner locations
-                # (11, 11) is the searching kernel size
-                # (-1, -1) to disable zerozone
                 refined_corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), self.criteria)
                 imgpoints.append(refined_corners)
 
-                # Draw & show
+                # Draw & optionally show
                 cv2.drawChessboardCorners(img, self.chessboard_size, refined_corners, patternfound)
-                cv2.imshow('Found chessboard', img)
-                cv2.waitKey(500)
-                fname = Path(fname).stem
-                save_path = os.path.join(self.save_dir, f'found_chessboard_in_{fname}.png')
+                if self.show:
+                    cv2.imshow('Found chessboard', img)
+                    cv2.waitKey(500)
+                stem = Path(fname).stem
+                save_path = os.path.join(self.save_dir, f'found_chessboard_in_{stem}.png')
                 cv2.imwrite(save_path, img)
                 print(f'[INFO] Saved found chessboard to {save_path}')
 
-        cv2.destroyAllWindows()
+        if self.show:
+            cv2.destroyAllWindows()
+
+        if len(objpoints) == 0:
+            print('[ERROR] No chessboard patterns were found. Check images and chessboard_size.')
+            return
 
         # Camera calibration
         overall_rms, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
-            objpoints, imgpoints, gray.shape[::-1], None, None
+            objpoints, imgpoints, used_image_shape, None, None
         )
 
         print("[INFO] Camera Matrix:\n", camera_matrix)
         print("[INFO] Distortion Coefficients:\n", dist_coeffs)
         print(f"[INFO] Overall RMS: {overall_rms}")
 
+        # Compute reprojection error
+        total_error = 0
+        errors = []
+        for i in range(len(objpoints)):
+            imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], camera_matrix, dist_coeffs)
+            error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2) / len(imgpoints2)
+            errors.append(float(error))
+            total_error += error
+        mean_error = total_error / len(objpoints)
+        print(f"[INFO] Reprojection error per image (mean): {mean_error}")
+        print(f"[INFO] Reprojection errors: {errors}")
+
         # Save to file
-        self.save_ca1ib_data(camera_matrix=camera_matrix, dist_coeffs=dist_coeffs, overall_rms=overall_rms)
+        self.save_calib_data(camera_matrix=camera_matrix, dist_coeffs=dist_coeffs, overall_rms=overall_rms)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--chessboard_size", type=int, nargs=2, metavar=("COLS", "ROWS"))
+    parser.add_argument("-cs", "--chessboard_size", type=int, nargs=2, metavar=("COLS", "ROWS"), default=[9,6],
+                        help="number of inner corners per chessboard row and column (cols rows). Default: 9 6")
     parser.add_argument("-i", "--image_dir", type=str, default="images/calibration/input")
     parser.add_argument("-o", "--save_dir", type=str, default="images/calibration/results")
+    parser.add_argument("-ss", "--square_size", type=float, default=0.02,
+                        help="size of a square on the chessboard in chosen units (e.g. meters). Default: 0.02")
+    parser.add_argument("--show", action='store_true', help="show detected corners during processing")
     args = parser.parse_args()
     
-    calibration_node = ChessboardCalibration(chessboard_size=args.chessboard_size, image_dir=args.image_dir, save_dir=args.save_dir)
+    calibration_node = ChessboardCalibration(chessboard_size=args.chessboard_size,
+                                             image_dir=args.image_dir,
+                                             save_dir=args.save_dir,
+                                             square_size=args.square_size,
+                                             show=args.show)
     calibration_node.calibrate()
