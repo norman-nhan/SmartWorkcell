@@ -38,3 +38,8 @@ To run test and debug for ur3e in simulation (avoid real-world collision/remote-
    ```bash
    roslaunch ur3e_moveit_config moveit_rviz.launch 
    ```
+## Debug
+### ARUCO MARKER DETECTION
+Please don't use the calibration result from `calibration.py`. It's not correct. It is the reason causing flicking axes and glitches.
+Highly recommend using the camera intrinsic using `pyrealsense` if you're using RealSense camera.
+## Usage
