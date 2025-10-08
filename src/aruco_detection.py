@@ -12,7 +12,16 @@ class ArucoDetectionNode:
     def __init__(self, dictionary, marker_length, calibration_path=None, cam_matrix=None, dist_coeffs=None, parameters=None):
         self.dictionary = aruco.getPredefinedDictionary(dictionary)
         self.parameters = parameters if parameters is not None else aruco.DetectorParameters()
-        
+        # Tuning parameters
+        self.parameters.minMarkerPerimeterRate = 0.05
+        self.parameters.maxMarkerPerimeterRate = 3.0
+        self.parameters.polygonalApproxAccuracyRate = 0.02
+        self.parameters.minCornerDistanceRate = 0.1
+        self.parameters.minMarkerDistanceRate = 0.05
+        self.parameters.errorCorrectionRate = 0.3
+        self.parameters.maxErroneousBitsInBorderRate = 0.02
+        self.parameters.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
+
         if calibration_path is None and (cam_matrix is None or dist_coeffs is None):
             raise ValueError("[ERROR] Please provide camera intrinsic (either path or both matrix and coefficients).")
         if calibration_path is not None:
@@ -69,13 +78,14 @@ class ArucoDetectionNode:
                 cv2.drawFrameAxes(
                     frame, self.cam_matrix, self.dist_coeffs, rvec, tvec, self.marker_length/2.0
                 )
-                print(f"ID: {ids}  rvec: {rvec.ravel()}  tvec: {tvec.ravel()}")
+                # print(f"ID: {ids}  rvec: {rvec.ravel()}  tvec: {tvec.ravel()}")
+                print(f"ID: {ids}  rvec: {np.degrees(rvec).ravel()}  tvec: {np.degrees(tvec).ravel()}")
     
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--dictionary", type=str, default="DICT_4X4_50", help="DEFAULT: DICT_4X4_50")
     parser.add_argument("-l", "--marker_length", type=float, default=0.1, help="DEFAULT: 10cm. Aruco marker length in meters")
-    parser.add_argument("-p", "--calibration_path", type=str, default="config/realsense_origin.yaml")
+    parser.add_argument("-p", "--calibration_path", type=str, default="../config/realsense_origin.yaml")
     parser.add_argument("-rs", "--realsense", action="store_true", help="Use RealSense camera as streaming device.")
     parser.add_argument("-s", "--serial_number", type=int, help="This flag only works if -rs is True.")
     parser.add_argument("-i", "--image_dir", type=str, default="images/aruco/input", help="This flag only works if --no_camera is True")
