@@ -61,7 +61,6 @@ class ArucoDetectionNode:
     def estimate_marker_pose(self, frame):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         corners, ids, rejected = self.detector.detectMarkers(gray)
-        print(f"detectMarkers: {ids}, {corners}")
         if ids is not None:
             aruco.drawDetectedMarkers(frame, corners, ids)
             rvecs, tvecs = self.estimatePoseSingleMarkers(corners)
@@ -74,9 +73,9 @@ class ArucoDetectionNode:
     
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--dictionary", type=str, default="DICT_4X4_50", help="Example: DICT_7X7_1000")
-    parser.add_argument("-l", "--marker_length", type=float, default=0.1, help="Aruco marker length in meters")
-    parser.add_argument("-p", "--calibration_path", type=str, default="config/origin_camera_intrinsic.yaml")
+    parser.add_argument("-d", "--dictionary", type=str, default="DICT_4X4_50", help="DEFAULT: DICT_4X4_50")
+    parser.add_argument("-l", "--marker_length", type=float, default=0.1, help="DEFAULT: 10cm. Aruco marker length in meters")
+    parser.add_argument("-p", "--calibration_path", type=str, default="config/realsense_origin.yaml")
     parser.add_argument("-rs", "--realsense", action="store_true", help="Use RealSense camera as streaming device.")
     parser.add_argument("-s", "--serial_number", type=int, help="This flag only works if -rs is True.")
     parser.add_argument("-i", "--image_dir", type=str, default="images/aruco/input", help="This flag only works if --no_camera is True")

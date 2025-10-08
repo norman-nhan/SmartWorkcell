@@ -6,7 +6,7 @@ import os
 import argparse
 
 class RealsenseCameraNode():
-    def __init__(self, serial_number=None, image_save_dir="images/test"):
+    def __init__(self, serial_number=None, image_save_dir="images/test", save_depth=False):
         self.ctx = rs.context()
         devices = self.ctx.query_devices()
         if len(devices) == 0:
@@ -37,6 +37,8 @@ class RealsenseCameraNode():
         if not os.path.exists(self.image_save_dir):
             os.makedirs(self.image_save_dir)
 
+        self.save_depth = save_depth
+
     def set_device(self, serial) -> None:
         if isinstance(serial, int):
             serial = str(serial)
@@ -46,12 +48,15 @@ class RealsenseCameraNode():
     
     def save_image(self, color_image, depth_image=None, depth_map=None):
         color_path = os.path.join(self.image_save_dir, f"color_{int(time.time() * 1000)}.png")
-        depth_path = os.path.join(self.image_save_dir, f"depth_{int(time.time() * 1000)}.png")
-        depth_map_path = os.path.join(self.image_save_dir, f"depth_{int(time.time() * 1000)}.npy")
         cv2.imwrite(color_path, color_image)
-        cv2.imwrite(depth_path, depth_image)
-        np.save(depth_map_path, depth_map)
-        print(f"[INFO] Saved color image to {color_path} depth colored image to {depth_path} and depth map to {depth_map_path}")
+        print(f"[INFO] Saved color image to {color_path}")
+
+        if self.save_depth:
+            depth_path = os.path.join(self.image_save_dir, f"depth_{int(time.time() * 1000)}.png")
+            depth_map_path = os.path.join(self.image_save_dir, f"depth_{int(time.time() * 1000)}.npy")
+            cv2.imwrite(depth_path, depth_image)
+            np.save(depth_map_path, depth_map)
+            print(f"[INFO] Saved colored depth image to {depth_path} and depth map to {depth_map_path}")
 
     def streaming(self, callback=None):
         # Start streaming
@@ -104,7 +109,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--serial_number", type=str)
     parser.add_argument("-i", "--image_save_dir", type=str, default="images/test")
+    parser.add_argument("--save_depth", action="store_true")
     args = parser.parse_args()
     
-    rsCam = RealsenseCameraNode(serial_number=args.serial_number, image_save_dir=args.image_save_dir)
+    rsCam = RealsenseCameraNode(
+        serial_number=args.serial_number, image_save_dir=args.image_save_dir, save_depth=args.save_depth
+    )
     rsCam.streaming()
