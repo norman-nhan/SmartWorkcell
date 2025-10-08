@@ -7,33 +7,33 @@ from pathlib import Path
 import argparse
 
 class ChessboardCalibration():
-    def __init__(self, chessboard_size, image_dir, save_dir, square_size=0.02, show=False):
+    def __init__(self, chessboard_size, square_size, image_dir, save_dir, show=False):
+        if chessboard_size is None:
+            raise ValueError("Please provide [cols rows] (number of chessboard inner corners)")
+        if square_size is None:
+            raise ValueError("Please provide chessboard square size in meters.")
+        
         self.chessboard_size = chessboard_size
-        self.image_dir = image_dir
-        self.save_dir = save_dir
         self.square_size = square_size
+        self.image_dir = image_dir
         self.show = show
+        
+        self.save_dir = save_dir
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
             print(f'[INFO] Created directory: {self.save_dir}')
         self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001) # Criteria for corner refinement
+        
         # Prepare 3D points in real-world space (z=0 plane).
-        # OpenCV expects patternSize = (points_per_row, points_per_column) == (cols, rows)
-        # so we follow the common tutorial convention and use mgrid[0:cols, 0:rows].
         cols, rows = self.chessboard_size
-        print(f'[DEBUG] chessboard_size interpreted as (cols, rows) = ({cols}, {rows})')
+        print(f'[INFO] chessboard_size interpreted as (cols, rows) = ({cols}, {rows})')
         self.empty_objp = np.zeros((rows * cols, 3), np.float32)
-        # Use the canonical ordering used in OpenCV samples: np.mgrid[0:cols, 0:rows]
-        # This produces (cols, rows, 2) which after transpose gives point list ordered
-        # left-to-right then top-to-bottom matching findChessboardCorners.
         objp = np.mgrid[0:cols, 0:rows].T.reshape(-1, 2).astype(np.float32)
         self.empty_objp[:, :2] = objp * self.square_size
 
-    def save_calib_data(self, camera_matrix, dist_coeffs, overall_rms):
-        # Save into the configured save_dir rather than cwd
-        np_path = os.path.join(self.save_dir, "camera_calibration.npz")
-        np.savez(np_path, camera_matrix=camera_matrix, dist_coeffs=dist_coeffs, overall_rms=overall_rms)
+        print(f"[INFO] Using Chessboard-{cols}X{rows}-{square_size*1000}mm")
 
+    def save2yaml(self, camera_matrix, dist_coeffs, overall_rms):
         calibration_data = {
             'camera_matrix': camera_matrix.tolist(),
             'dist_coeffs': dist_coeffs.flatten().tolist() if hasattr(dist_coeffs, 'flatten') else list(dist_coeffs),
@@ -72,8 +72,7 @@ class ChessboardCalibration():
                 print(f"[WARN] Could not read {fname}, skipping")
                 continue
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            # cv2.imshow("debug", gray)
-            # cv2.waitKey(500)
+
             # Save image shape for calibrateCamera (must be consistent)
             if used_image_shape is None:
                 used_image_shape = gray.shape[::-1]
@@ -86,7 +85,7 @@ class ChessboardCalibration():
                 gray, self.chessboard_size,
                 flags=cv2.CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_NORMALIZE_IMAGE
             )
-            print(f"[DEBUG] {fname} - pattern found: {patternfound}")
+            print(f"[INFO] {fname} - pattern found: {patternfound}")
 
             if patternfound:
                 # store a copy of object points for each image
@@ -135,16 +134,16 @@ class ChessboardCalibration():
         print(f"[INFO] Reprojection errors: {errors}")
 
         # Save to file
-        self.save_calib_data(camera_matrix=camera_matrix, dist_coeffs=dist_coeffs, overall_rms=overall_rms)
+        self.save2yaml(camera_matrix=camera_matrix, dist_coeffs=dist_coeffs, overall_rms=overall_rms)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-cs", "--chessboard_size", type=int, nargs=2, metavar=("COLS", "ROWS"), default=[9,6],
-                        help="number of inner corners per chessboard row and column (cols rows). Default: 9 6")
+    parser.add_argument("--chessboard_size", type=int, nargs=2, metavar=("COLS", "ROWS"),
+                        help="number of inner corners per chessboard row and column (cols rows).")
+    parser.add_argument("--square_size", type=float,
+                        help="size of a square on the chessboard in chosen units (e.g. meters).")
     parser.add_argument("-i", "--image_dir", type=str, default="images/calibration/input")
     parser.add_argument("-o", "--save_dir", type=str, default="images/calibration/results")
-    parser.add_argument("-ss", "--square_size", type=float, default=0.02,
-                        help="size of a square on the chessboard in chosen units (e.g. meters). Default: 0.02")
     parser.add_argument("--show", action='store_true', help="show detected corners during processing")
     args = parser.parse_args()
     
