@@ -78,8 +78,9 @@ def main():
     parser.add_argument("-l", "--marker_length", type=float, default=0.1, help="Aruco marker length in meters")
     parser.add_argument("-p", "--calibration_path", type=str, default="config/origin_camera_intrinsic.yaml")
     parser.add_argument("-rs", "--realsense", action="store_true", help="Use RealSense camera as streaming device.")
-    parser.add_argument("-i", "--image_dir", type=str, default="images/aruco/input", help="This flags only works if --no_camera is True")
-    parser.add_argument("-o", "--save_dir", type=str, default="images/aruco/results", help="This flags only works if --no_camera is True")
+    parser.add_argument("-s", "--serial_number", type=int, help="This flag only works if -rs is True.")
+    parser.add_argument("-i", "--image_dir", type=str, default="images/aruco/input", help="This flag only works if --no_camera is True")
+    parser.add_argument("-o", "--save_dir", type=str, default="images/aruco/results", help="This flag only works if --no_camera is True")
     parser.add_argument("--no_camera", type=str, help="Use saved images as input")
     args = parser.parse_args()
 
@@ -118,7 +119,7 @@ def main():
     # If RealSense camera used as input
     elif args.realsense:
         print("[INFO] Using RealSense camera")
-        rscam = RealsenseCameraNode()
+        rscam = RealsenseCameraNode(serial_number=args.serial_number)
         rscam.streaming(callback=node.estimate_marker_pose)
     # If USB cam used as input
     else:
