@@ -47,4 +47,5 @@ Highly recommend using the camera intrinsic using `pyrealsense` if you're using 
 ##### 2025/10/8 Updates
 I have done several tests with different chessboard size and I found that for mac webcam you can use small chessboard size (Checkerboard-A4-40mm-6x4) to increase calibration result.
 
+I have tested with realsense camera and the result is also stable with calibration file from `calibration.py` with Checkerboard-A4-40mm-6x4
 ## Usage
