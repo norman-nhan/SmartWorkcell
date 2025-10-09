@@ -5,14 +5,20 @@ import argparse
 import cv2
 import cv2.aruco as aruco
 import numpy as np
-from realsense_utils import RealsenseCameraNode
+from RealSenseCamera import RealsenseCameraNode
 from pathlib import Path
+from SmartWorkcell.calibration_utils import rvec2matrix, make_transform_matrix, save_transform_matrix
 
 class ArucoDetectionNode:
-    def __init__(self, dictionary, marker_length, calibration_path=None, cam_matrix=None, dist_coeffs=None, parameters=None):
-        self.dictionary = aruco.getPredefinedDictionary(dictionary)
-        self.parameters = parameters if parameters is not None else aruco.DetectorParameters()
+    def __init__(self, dictionary: int, marker_length: float, cam_matrix: np.ndarray, dist_coeffs: np.ndarray, parameters=None,
+                 save_dir="images/aruco/results",
+                 no_camera=False, image_dir="images/aruco/input"):
+        """Detect marker pose with 3 modes:
+        - Default: with realsense camera
+        - with images when no_camera is True
+        - with webcam or usbcam"""
         # Tuning parameters
+        self.parameters = parameters if parameters is not None else aruco.DetectorParameters()
         self.parameters.minMarkerPerimeterRate = 0.05
         self.parameters.maxMarkerPerimeterRate = 3.0
         self.parameters.polygonalApproxAccuracyRate = 0.02
@@ -22,28 +28,18 @@ class ArucoDetectionNode:
         self.parameters.maxErroneousBitsInBorderRate = 0.02
         self.parameters.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
 
-        if calibration_path is None and (cam_matrix is None or dist_coeffs is None):
-            raise ValueError("[ERROR] Please provide camera intrinsic (either path or both matrix and coefficients).")
-        if calibration_path is not None:
-            self.load_calibration_data_from_file(calibration_path)
-        else:
-            self.cam_matrix = np.array(cam_matrix, dtype=np.float64)
-            self.dist_coeffs =np.array(dist_coeffs, dtype=np.float64)
-        
-        self.marker_length = marker_length
+        self.dictionary = aruco.getPredefinedDictionary(dictionary)
         self.detector = aruco.ArucoDetector(self.dictionary, self.parameters)
+        self.cam_matrix = cam_matrix 
+        self.dist_coeffs = dist_coeffs
+        self.marker_length = marker_length
 
-    def load_calibration_data_from_file(self, path):
-        path = Path(path)
-        calibrated = None
-        if path.suffix in [".yaml", ".yml"]: # check if yaml
-            with open(path, 'r') as f:
-                calibrated = yaml.safe_load(f)
-        else: # other format like npy, npz
-            calibrated = np.load(path)
-        
-        self.cam_matrix = np.array(calibrated["camera_matrix"], dtype=np.float64)
-        self.dist_coeffs =np.array(calibrated["dist_coeffs"], dtype=np.float64)
+        # Save detection result
+        self.save_dir = save_dir
+
+        # When no camera is True
+        self.no_camera = no_camera
+        self.image_dir = image_dir if image_dir is not None else "images/aruco/input"
 
     def estimatePoseSingleMarkers(self, corners):
         # Prepare 3D object points
@@ -59,10 +55,8 @@ class ArucoDetectionNode:
         for corner in corners:
             success, rvec, tvec = cv2.solvePnP(
                 objp, corner[0], self.cam_matrix, self.dist_coeffs,
-                # flags=aruco.CORNER_REFINE_SUBPIX
             )
             if success:
-                # rvec, tvec = cv2.solvePnPRefineLM(objp, corner[0], self.cam_matrix, self.dist_coeffs, rvec, tvec)
                 rvecs.append(rvec)
                 tvecs.append(tvec)
         return rvecs, tvecs
@@ -78,9 +72,42 @@ class ArucoDetectionNode:
                 cv2.drawFrameAxes(
                     frame, self.cam_matrix, self.dist_coeffs, rvec, tvec, self.marker_length/2.0
                 )
-                # print(f"ID: {ids}  rvec: {rvec.ravel()}  tvec: {tvec.ravel()}")
-                print(f"ID: {ids}  rvec: {np.degrees(rvec).ravel()}  tvec: {np.degrees(tvec).ravel()}")
+                # print(f"[INFO] ID: {ids}  rvec: {rvec.ravel()}  tvec: {tvec.ravel()}")
     
+    def detect(self):
+        if self.no_camera:
+            patterns = [".png", ".jpeg", ".jpg", ".tiff"]
+            images = []
+            for p in patterns:
+                images.extend(glob.glob(os.path.join(self.image_dir, "*.png")))
+            images = sorted(images)
+            if len(images) == 0:
+                print(f"[ERROR] No images found in {self.image_dir}")
+                return
+            
+            for fname in images:
+                img = cv2.imread(fname)
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                corners, ids, _ = self.detector.detectMarkers(gray)
+                print(f'[INFO] Detected markers: {ids}, {corners}')
+                if ids is not None:
+                    aruco.drawDetectedMarkers(img, corners, ids)
+                    rvecs, tvecs = self.estimatePoseSingleMarkers(corners)
+                    for id, rvec, tvec in zip(ids, rvecs, tvecs):
+                        distance = np.linalg.norm(tvec)
+                        axis_len = min(0.02, distance * 0.2) # to avoid axis length overflows
+                        cv2.drawFrameAxes(img, self.cam_matrix, self.dist_coeffs, rvec, tvec, axis_len)
+                        cv2.imshow("Marker pose", img)
+                        print(f"[INFO] IDs: {id}, rvec: {rvec}, tvec: {tvec}")
+                        # save marker pose
+                        save_path = os.path.join(self.save_dir, f"{Path(fname).stem}_pose.yaml")
+                        # Make tranform matrix from camera to marker
+                        R = rvec2matrix(rvec)
+                        T = make_transform_matrix(R, tvec)
+                        save_transform_matrix(T, save_path)
+                cv2.waitKey(500)
+        cv2.destroyAllWindows()
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--dictionary", type=str, default="DICT_4X4_50", help="DEFAULT: DICT_4X4_50")

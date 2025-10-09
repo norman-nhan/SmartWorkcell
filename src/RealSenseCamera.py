@@ -6,20 +6,10 @@ import os
 import argparse
 
 class RealsenseCameraNode():
-    def __init__(self, serial_number=None, image_save_dir="images/test", save_depth=False):
+    def __init__(self, serial_number=None, image_save_dir=None, save_depth=False):
+        # Get basic information
         self.ctx = rs.context()
-        devices = self.ctx.query_devices()
-        if len(devices) == 0:
-            print("[WARN] No realsense devices found!")
-        else:
-            print(f"[INFO] {len(devices)} RealSense device(s) connected.\n")
-            for i, dev in enumerate(devices):
-                name = dev.get_info(rs.camera_info.name)
-                serial = dev.get_info(rs.camera_info.serial_number)
-                firmware = dev.get_info(rs.camera_info.firmware_version)
-                print(f"[{i}] {name}")
-                print(f"    Serial Number: {serial}")
-                print(f"    Firmware: {firmware}")
+        self.print_connected_devices_info()
 
         # Configure RealSense pipeline
         self.pipeline = rs.pipeline()
@@ -33,11 +23,26 @@ class RealsenseCameraNode():
         self.config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30) # depth in 16bit format
 
         # Create folder to save images
-        self.image_save_dir = image_save_dir
+        self.image_save_dir = image_save_dir if image_save_dir is not None else "images/test"
         if not os.path.exists(self.image_save_dir):
             os.makedirs(self.image_save_dir)
 
+        # Toogle: Save/Not-save depth data
         self.save_depth = save_depth
+
+    def print_connected_devices_info(self):
+        devices = self.ctx.query_devices()
+        if len(devices) == 0:
+            print("[WARN] No realsense devices found!")
+        else:
+            print(f"[INFO] {len(devices)} RealSense device(s) connected.\n")
+            for i, dev in enumerate(devices):
+                name = dev.get_info(rs.camera_info.name)
+                serial = dev.get_info(rs.camera_info.serial_number)
+                firmware = dev.get_info(rs.camera_info.firmware_version)
+                print(f"[{i}] {name}")
+                print(f"    Serial Number: {serial}")
+                print(f"    Firmware: {firmware}")
 
     def set_device(self, serial) -> None:
         if isinstance(serial, int):
@@ -95,8 +100,7 @@ class RealsenseCameraNode():
                 # Press 's' to save images
                 elif key == ord('s'):
                     self.save_image(color_image, depth_image=depth_image, depth_map=depth_map)
-                elif key == ord('p'):
-                    self.pipeline.stop()
+
         except KeyboardInterrupt:
             pass
         finally:
