@@ -5,7 +5,7 @@ import cv2
 
 def get_camera_intrinsic(path) -> Tuple[np.ndarray, np.ndarray]:
     """Return  2 np.ndarray from a yaml file:
-    - camera matrix and 
+    - camera matrix
     - distortion coefficients 
     """
     with open(path, 'r') as f:

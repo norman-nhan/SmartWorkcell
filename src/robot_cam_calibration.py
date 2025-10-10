@@ -31,4 +31,4 @@ if __name__ == "__main__":
     cam_node.streaming()
 
     # Detect marker pose
-    aruco_detection_node.detect()
+    aruco_detection_node.detect_with_images()
