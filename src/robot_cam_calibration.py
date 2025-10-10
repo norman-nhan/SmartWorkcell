@@ -24,11 +24,10 @@ if __name__ == "__main__":
     cam_node = RealsenseCameraNode(image_save_dir=IMAGE_DIR)
     # Intialize aruco detection node
     cam_mtx, dist_coeffs = get_camera_intrinsic(CALIBRATION_PATH)
-    aruco_detection_node = ArucoDetectionNode(aruco.DICT_4X4_100, 0.1, cam_mtx, dist_coeffs, parameters=None,
-                                              save_dir=SAVE_DIR, no_camera=True, image_dir=IMAGE_DIR)
+    aruco_detection_node = ArucoDetectionNode(aruco.DICT_4X4_100, 0.1, cam_mtx, dist_coeffs, parameters=None, save_dir=SAVE_DIR)
     
     # Open camera, press 's' to save image
     cam_node.streaming()
 
     # Detect marker pose
-    aruco_detection_node.detect_with_images()
+    aruco_detection_node.detect_with_images(image_dir=IMAGE_DIR)

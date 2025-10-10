@@ -107,7 +107,7 @@ class RealsenseCameraNode():
             # Stop streaming
             self.pipeline.stop()
             cv2.destroyAllWindows()
-            print("[INFO] All processes shut down successfully!")
+            print("[INFO] RealSense camera shut down successfully!")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -101,7 +101,7 @@ class ArucoDetectionNode:
         rscam.streaming(self.estimate_marker_pose)
         
     def detect_with_images(self, image_dir="images/aruco/input"):
-        print("[INFO] USING IMAGE MODE!")
+        print("[INFO] DETECT MARKER WITH SAVED IMAGES MODE!")
         patterns = [".png", ".jpeg", ".jpg", ".tiff"]
         images = []
         for _ in patterns:
@@ -113,7 +113,7 @@ class ArucoDetectionNode:
         
         for fname in images:
             frame = cv2.imread(fname)
-            self.estimate_marker_pose(frame, fname, is_streaming=False)
+            self.estimate_marker_pose(frame, is_streaming=False, fname=fname)
 
     def detect_with_webcam(self, camera_id=1):
         cap = cv2.VideoCapture(camera_id)
