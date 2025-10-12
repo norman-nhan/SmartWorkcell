@@ -1,29 +1,15 @@
 # SmartWorkcell
-## Installation
-### Realsense2
-After installed realsense sdk from their website don't forget to add udev rule if it's not installed yet.
-Download udev rule from this [link](https://github.com/IntelRealSense/librealsense/blob/master/config/99-realsense-libusb.rules) then copy it to `/etc/udev/rules.d/` OR using this command:
-```bash
-cd ~/Downloads; wget https://github.com/IntelRealSense/librealsense/blob/master/config/99-realsense-libusb.rules
-sudo cp ~/Downloads/99-realsense-libusb.rules /etc/udev/rules.d/
-```
-## (Optional) Auto-completetion for ROS python libraries
-1. Press `Ctrl + Shift + P` -> Choose `Preferences: Open Workspace Settings (JSON)`
-   OR open `.vscode/settings.json` file in your working-dir.
-3. Add `"/opt/ros/noetic/lib/python3/dist-packages"` to `python.analysis.extraPaths` in `settings.json`.
-  
-Example:
-```json
-{
-    "python.analysis.extraPaths": [
-        "./GroundingDINO",
-        "./segment-anything",
-        "/opt/ros/noetic/lib/python3/dist-packages"
-    ],
-    "python-envs.defaultEnvManager": "ms-python.python:system",
-    "python-envs.pythonProjects": []
-}
-```
+> [!NOTE]
+> RealSense doesn't support MacOS so we will not have realsense interface.
+
+> [!TIP]
+> **Autocomplete for ROS-python packages**
+>
+> Add `"/opt/ros/noetic/lib/python3/dist-packages"` to `python.analysis.extraPaths` in `settings.json`.
+> Example:
+> ```json
+> "python.analysis.extraPaths": ["/opt/ros/noetic/lib/python3/dist-packages"]
+> ```
 ## Simulation
 To run test and debug for ur3e in simulation (avoid real-world collision/remote-work) run these CLIs in order:
 1. Open ur3e in Gazebo:
