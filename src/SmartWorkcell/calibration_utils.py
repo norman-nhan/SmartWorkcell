@@ -69,16 +69,14 @@ def load_multi_transforms(path):
         T_list.append(T)
     return ids, T_list
 
-
-def save_transform_mtx(T, path):
+def save_transformation_mtx(T, path):
     """Save transform matrix to a YAML file."""
     data = {
-        'rotation_matrix': T[:3, :3].tolist(),
-        'translation': T[:3, 3].tolist()
+        'transform_mtx': T.tolist()
     }
     with open(path, 'w') as f:
         yaml.dump(data, f, sort_keys=False, default_flow_style=None, width=120, indent=2)
-    print(f"[INFO] Saved transform to {path}")
+    print(f"[INFO] Saved transformation matrix to {path}")
 
 def load_transform_mtx(path):
     """Load 4x4 transform matrix from YAML file."""
