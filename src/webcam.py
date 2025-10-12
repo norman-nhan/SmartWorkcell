@@ -1,7 +1,11 @@
 import cv2
 import os
 
-SAVE_DIR = "images/calibration/input"
+SAVE_DIR = "io/test"
+if not os.path.exists(SAVE_DIR):
+    os.makedirs(SAVE_DIR)
+    print(f'[INFO] Created directory {SAVE_DIR}.')
+
 def main():    
     cap = cv2.VideoCapture(1)
     try:
