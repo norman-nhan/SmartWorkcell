@@ -1,0 +1,7 @@
+# assume that marker pose rotation is same as robot base_link
+# maker position is in front of the robot base_link 10cm
+transform_mtx: 
+  - [0, 0, -1, 0.0]
+  - [0, -1, 0, 0.1]
+  - [-1, 0, 0, 0.0]
+  - [0.0, 0, 0, 1.0]

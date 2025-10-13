@@ -30,7 +30,7 @@ class ChessboardCalibration():
         objp = np.mgrid[0:cols, 0:rows].T.reshape(-1, 2).astype(np.float32) # make 2d grid
         self.empty_objp[:, :2] = objp * self.size # same z coordinate for every pixel
 
-    def process_image(self, fname):
+    def _process_image(self, fname):
         """Process one image and return (success, imgpoints(refined_corners), imageSize)"""
         img = cv2.imread(fname)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -67,7 +67,7 @@ class ChessboardCalibration():
             print(f"[INFO] Total images: {len(images)}")
 
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            results = list(executor.map(self.process_image, images))
+            results = list(executor.map(self._process_image, images))
         for r in results:
             if r is None:
                 continue

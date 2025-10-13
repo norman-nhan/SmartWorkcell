@@ -1,5 +1,0 @@
-rotation_matrix: # assume that marker pose rotation is same as robot base_link
-  - [0, 0, -1]
-  - [0, -1, 0]
-  - [-1, 0, 0]
-translation: [0.0, 0.1, 0.0] # maker position is in front of the robot base_link 10cm

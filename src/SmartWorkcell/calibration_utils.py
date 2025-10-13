@@ -17,7 +17,7 @@ def save_camera_calibration(path, cam_mtx, dist_coeffs=None, overall_rms=None, r
             f,
             sort_keys=False, 
             default_flow_style=None,
-            width=12, 
+            width=120,
             indent=2
         )
     print(f'[INFO] Saved camera intrinsic to {path}')
@@ -64,8 +64,7 @@ def save_multi_transforms(ids, T_list, path):
     for id, T in zip(ids, T_list):
         entry = {
             'id': id.tolist()[0],
-            'rotation_matrix': T[:3, :3].tolist(),
-            'translation': T[:3, 3].tolist()
+            'transform_mtx': T.tolist()
         }
         data.append(entry)
         data = sorted(data, key=lambda entry: entry['id'])

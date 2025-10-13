@@ -42,6 +42,8 @@ class ChessboardCalibration():
         if len(images) == 0:
             print(f"[ERROR] No images found in {self.image_dir}")
             return
+        else:
+            print(f"[INFO] Total images: {len(images)}")
 
         used_image_shape = None
         for fname in images:
