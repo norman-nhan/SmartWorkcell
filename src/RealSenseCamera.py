@@ -63,7 +63,7 @@ class RealsenseCameraNode():
             np.save(depth_map_path, depth_map)
             print(f"[INFO] Saved colored depth image to {depth_path} and depth map to {depth_map_path}")
 
-    def streaming(self, estimate_callback=None):
+    def streaming(self, estimate_marker_pose_callback=None):
         # Start streaming
         self.pipeline.start(self.config)
         profile = self.pipeline.get_active_profile()
@@ -85,8 +85,8 @@ class RealsenseCameraNode():
                 depth_map = np.asanyarray(depth_frame.get_data())
 
                 # Detect aruco pose callback
-                if estimate_callback is not None:
-                    estimate_callback(color_image, is_streaming=True, fname=None)
+                if estimate_marker_pose_callback is not None:
+                    estimate_marker_pose_callback(color_image)
 
                 # Stack images side by side
                 images = np.hstack((color_image, depth_image))
