@@ -12,7 +12,7 @@ from SmartWorkcell.calibration_utils import (
 import concurrent.futures
 
 class ArucoDetectionNode:
-    def __init__(self, dictionary: int, marker_length: float, cam_matrix: np.ndarray, dist_coeffs: np.ndarray, parameters=None,
+    def __init__(self, dictionary: int, cam_matrix: np.ndarray, dist_coeffs: np.ndarray, parameters=None, marker_length: float=0.1,
                  save_dir="io/aruco/results"):
         
         # Tuning parameters
@@ -57,7 +57,7 @@ class ArucoDetectionNode:
                 tvecs.append(tvec)
         return rvecs, tvecs        
 
-    def estimate_marker_poses_from_frame(self, frame) -> tuple[bool, list[int], list[np.ndarray]]:
+    def estimate_marker_poses_from_frame(self, frame):
         """Estimate marker pose from a single frame.
         
         Returns
@@ -82,6 +82,7 @@ class ArucoDetectionNode:
         return marker_found, ids, T_list
     
     def _process_image(self, fname):
+        """Handle each image in different thread"""
         img = cv2.imread(fname)
         success, ids, T_list = self.estimate_marker_poses_from_frame(img)
 

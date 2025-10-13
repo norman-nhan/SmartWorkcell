@@ -6,7 +6,7 @@ import os
 import argparse
 
 class RealsenseCameraNode():
-    def __init__(self, serial_number=None, image_save_dir=None, save_depth=False):
+    def __init__(self, serial_number=None, image_save_dir='io/test', save_depth=False):
         # Get basic information
         self.ctx = rs.context()
         self.print_connected_devices_info()
@@ -23,12 +23,15 @@ class RealsenseCameraNode():
         self.config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30) # depth in 16bit format
 
         # Create folder to save images
-        self.image_save_dir = image_save_dir if image_save_dir is not None else "images/test"
+        self.image_save_dir = image_save_dir if image_save_dir is not None else "io/test"
         if not os.path.exists(self.image_save_dir):
             os.makedirs(self.image_save_dir)
 
         # Toogle: Save/Not-save depth data
         self.save_depth = save_depth
+
+        # For get frame out of scope
+        self.last_frame = None
 
     def print_connected_devices_info(self):
         devices = self.ctx.query_devices()
@@ -63,7 +66,7 @@ class RealsenseCameraNode():
             np.save(depth_map_path, depth_map)
             print(f"[INFO] Saved colored depth image to {depth_path} and depth map to {depth_map_path}")
 
-    def streaming(self, estimate_marker_pose_callback=None):
+    def streaming(self):
         # Start streaming
         self.pipeline.start(self.config)
         profile = self.pipeline.get_active_profile()
@@ -84,9 +87,8 @@ class RealsenseCameraNode():
                 depth_image = np.asanyarray(self.colorizer.colorize(depth_frame).get_data())
                 depth_map = np.asanyarray(depth_frame.get_data())
 
-                # Detect aruco pose callback
-                if estimate_marker_pose_callback is not None:
-                    estimate_marker_pose_callback(color_image)
+                # Get current frame
+                self.last_frame = color_image
 
                 # Stack images side by side
                 images = np.hstack((color_image, depth_image))

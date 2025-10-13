@@ -60,31 +60,32 @@ def invert_transform(T):
 
 def save_multi_transforms(ids, T_list, path):
     """Save multiple transform matrices to a YAML file."""
-    data = []
+    data = {}
     for id, T in zip(ids, T_list):
-        entry = {
-            'id': id.tolist()[0],
-            'transform_mtx': T.tolist()
-        }
-        data.append(entry)
-        data = sorted(data, key=lambda entry: entry['id'])
+        key = str(int(id))  # ensure YAML key is like '0', '5'
+        data[key] = {'transform_mtx': T.tolist()}
 
     with open(path, 'w') as f:
         yaml.dump(data, f, sort_keys=False, default_flow_style=None, width=120, indent=2)
     print(f"[INFO] Saved transforms to {path}")
 
 def load_multi_transforms(path):
-    """Return a list of ids and a list of 4x4 transform matrices from YAML file."""
+    """Load transform matrices from a YAML file.
+    
+    Returns
+    -------
+    ids : list[int]
+        List of marker IDs.
+    T_list : list[np.ndarray]
+        List of 4x4 transformation matrices.
+    """
     with open(path, 'r') as f:
         data = yaml.safe_load(f)
-    
+
     ids, T_list = [], []
-    for entry in data:
-        ids.append(entry['id'])
-        R = np.array(entry['rotation_matrix'])
-        t = np.array(entry['translation'])
-        T = make_transform_matrix(R, t)
-        T_list.append(T)
+    for key, value in data.items():
+        ids.append(int(key))
+        T_list.append(np.array(value['transform_mtx'], dtype=float))
     return ids, T_list
 
 def save_transformation_mtx(T, path):
