@@ -43,6 +43,12 @@ def make_transform_matrix(R, t):
     T[:3, 3] = t.flatten()
     return T
 
+def vectors2matrix(rvec, tvec):
+    """Convert rotation vector and translation vector to 4x4 homogeneous transform."""
+    R = rvec2matrix(rvec)
+    T = make_transform_matrix(R, tvec)
+    return T
+
 def invert_transform(T):
     """Compute inverse of a homogeneous transform."""
     T_inv = np.eye(4)
@@ -52,17 +58,46 @@ def invert_transform(T):
     T_inv[:3, 3] = -R.T @ t
     return T_inv
 
-def save_transform_matrix(T, path):
+def save_multi_transforms(ids, T_list, path):
+    """Save multiple transform matrices to a YAML file."""
+    data = []
+    for id, T in zip(ids, T_list):
+        entry = {
+            'id': id.tolist()[0],
+            'rotation_matrix': T[:3, :3].tolist(),
+            'translation': T[:3, 3].tolist()
+        }
+        data.append(entry)
+        data = sorted(data, key=lambda entry: entry['id'])
+
+    with open(path, 'w') as f:
+        yaml.dump(data, f, sort_keys=False, default_flow_style=None, width=120, indent=2)
+    print(f"[INFO] Saved transforms to {path}")
+
+def load_multi_transforms(path):
+    """Return a list of ids and a list of 4x4 transform matrices from YAML file."""
+    with open(path, 'r') as f:
+        data = yaml.safe_load(f)
+    
+    ids, T_list = [], []
+    for entry in data:
+        ids.append(entry['id'])
+        R = np.array(entry['rotation_matrix'])
+        t = np.array(entry['translation'])
+        T = make_transform_matrix(R, t)
+        T_list.append(T)
+    return ids, T_list
+
+def save_transformation_mtx(T, path):
     """Save transform matrix to a YAML file."""
     data = {
-        'rotation_matrix': T[:3, :3].tolist(),
-        'translation': T[:3, 3].tolist()
+        'transform_mtx': T.tolist()
     }
     with open(path, 'w') as f:
         yaml.dump(data, f, sort_keys=False, default_flow_style=None, width=120, indent=2)
-    print(f"[INFO] Saved transform to {path}")
+    print(f"[INFO] Saved transformation matrix to {path}")
 
-def load_transform_from_yaml(path):
+def load_transform_mtx(path):
     """Load 4x4 transform matrix from YAML file."""
     with open(path, 'r') as f:
         data = yaml.safe_load(f)
