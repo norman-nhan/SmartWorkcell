@@ -3,6 +3,25 @@ import numpy as np
 from typing import Tuple
 import cv2
 
+def save_camera_calibration(path, cam_mtx, dist_coeffs=None, overall_rms=None, reproj_err_mean=None, reproj_err_total=None):
+    data = {
+        'camera_matrix': cam_mtx.tolist(),
+        'dist_coeffs': dist_coeffs.flatten().tolist(),
+        'overall_rms': overall_rms,
+        'mean_reprojection_errors': reproj_err_mean,
+        'total_reprojection_errors': reproj_err_total
+    }
+    with open(path, 'w') as f:
+        yaml.dump(
+            data,
+            f,
+            sort_keys=False, 
+            default_flow_style=None,
+            width=12, 
+            indent=2
+        )
+    print(f'[INFO] Saved camera intrinsic to {path}')
+
 def get_camera_intrinsic(path) -> Tuple[np.ndarray, np.ndarray]:
     """Return  2 np.ndarray from a yaml file:
     - camera matrix

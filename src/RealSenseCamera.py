@@ -112,7 +112,7 @@ class RealsenseCameraNode():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--serial_number", type=str)
-    parser.add_argument("-i", "--image_save_dir", type=str, default="images/test")
+    parser.add_argument("-i", "--image_save_dir", type=str, default="io/test")
     parser.add_argument("--save_depth", action="store_true")
     args = parser.parse_args()
     
