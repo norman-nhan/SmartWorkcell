@@ -3,6 +3,7 @@ import pyrealsense2 as rs
 import numpy as np
 import cv2
 import os
+from pathlib import Path
 import argparse
 
 class RealsenseCameraNode():
@@ -55,13 +56,14 @@ class RealsenseCameraNode():
         print(f"[INFO] Device with seria number: {serial} was set.")
     
     def save_image(self, color_image, depth_image=None, depth_map=None):
-        color_path = os.path.join(self.image_save_dir, f"color_{int(time.time() * 1000)}.png")
+        fname = f'{int(time.time() * 1000)}'
+        color_path = os.path.join(self.image_save_dir, f"color_{fname}.png")
         cv2.imwrite(color_path, color_image)
         print(f"[INFO] Saved color image to {color_path}")
 
         if self.save_depth:
-            depth_path = os.path.join(self.image_save_dir, f"depth_{int(time.time() * 1000)}.png")
-            depth_map_path = os.path.join(self.image_save_dir, f"depth_{int(time.time() * 1000)}.npy")
+            depth_path = os.path.join(self.image_save_dir, f'colored_depth_{fname}.png')
+            depth_map_path = os.path.join(self.image_save_dir, f'depth_map_{fname}.npy')
             cv2.imwrite(depth_path, depth_image)
             np.save(depth_map_path, depth_map)
             print(f"[INFO] Saved colored depth image to {depth_path} and depth map to {depth_map_path}")
