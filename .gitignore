@@ -3,3 +3,5 @@ __pycache__
 .DS_Store
 images/
 io
+dist
+src/SmartWorkcell.egg-info
