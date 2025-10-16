@@ -47,3 +47,4 @@ I have done several tests with different chessboard size and I found that for ma
 
 I have tested with realsense camera and the result is also stable with calibration file from `calibration.py` with Checkerboard-A4-40mm-6x4
 ## Usage
+Instruction for demo is save at `~/nhan_ws/src/docs` in "Demo PC". Use `git pull` to update to the lastest instruction.
