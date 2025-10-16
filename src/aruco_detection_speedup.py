@@ -1,13 +1,9 @@
 import glob, os
-from pathlib import Path
 import argparse
-import cv2
 import cv2.aruco as aruco
-import numpy as np
 import time
 from SmartWorkcell.calibration_utils import (
-    load_camera_intrinsic, vectors2matrix,
-    save_multi_transforms
+    load_camera_intrinsic,
 )
 import concurrent.futures
 from ArucoDetection import ArucoDetectionNode
