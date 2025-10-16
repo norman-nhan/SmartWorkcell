@@ -5,3 +5,5 @@ images/
 io
 dist
 src/SmartWorkcell.egg-info
+config/gdino
+config/nanosam

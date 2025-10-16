@@ -11,9 +11,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
-license = "MIT"
-license-files = ["LICEN[CS]E*"]
-
+license = { text = "MIT" }
 [project.urls]
 Homepage = "https://github.com/norman-nhan/SmartWorkcell"
 Issues = "https://github.com/norman-nhan/SmartWorkcell"
