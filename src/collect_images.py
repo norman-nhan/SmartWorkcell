@@ -118,7 +118,7 @@ class RealsenseCameraNode():
             print("[INFO] RealSense camera shut down successfully!")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Collecting images for camera calibration with chessboard.')
     parser.add_argument("--serial_number", type=str)
     parser.add_argument("-i", "--image_save_dir", type=str, default=IO_DIR/'calibration'/'input')
     parser.add_argument("--save_depth", action="store_true")

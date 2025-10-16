@@ -1,4 +1,4 @@
-from ArucoDetection import ArucoDetectionNode
+from SmartWorkcell.ArucoDetection import ArucoDetectionNode
 import cv2.aruco as aruco
 import cv2
 from SmartWorkcell.calibration_utils import (
