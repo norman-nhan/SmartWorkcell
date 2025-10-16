@@ -1,5 +1,11 @@
 # SmartWorkcell
 ## Installation
+### This package
+```bash
+cd ~/nhan_ws/src/SmartWorkcell
+python3 setup.py sdist
+pip install dist/SmartWorkcell-0.0.1.tar.gz
+```
 ### Realsense2
 After installed realsense sdk from their website don't forget to add udev rule if it's not installed yet.
 Download udev rule from this [link](https://github.com/IntelRealSense/librealsense/blob/master/config/99-realsense-libusb.rules) then copy it to `/etc/udev/rules.d/` OR using this command:
