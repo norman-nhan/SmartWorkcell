@@ -1,18 +1,20 @@
-from RealSenseCamera import RealsenseCameraNode
 from ArucoDetection import ArucoDetectionNode
 import cv2.aruco as aruco
 import cv2
-from SmartWorkcell.calibration_utils import get_camera_intrinsic, load_multi_transforms, save_multi_transforms
+from SmartWorkcell.calibration_utils import (
+    load_camera_intrinsic, load_multi_transforms, save_multi_transforms,
+    invert_transform
+)
 from SmartWorkcell.realsense_utils import initialize_realsense_camera, print_available_sensors
 import pyrealsense2 as rs
-from pyrealsense2 import camera_info
 import numpy as np
 from pathlib import Path
+import time
 
 def main():
     # Load transformation matrix from marker -> robot
     marker_robot_ids, marker_robot_T_list = load_multi_transforms('config/marker2robot.yaml')
-    cam_mtx, dist_coeffs = get_camera_intrinsic('config/realsense_origin.yaml')
+    cam_mtx, dist_coeffs = load_camera_intrinsic('config/realsense_origin.yaml')
     detectionNode = ArucoDetectionNode(
         aruco.DICT_4X4_50,
         cam_mtx, dist_coeffs,
@@ -22,10 +24,11 @@ def main():
     colorizer = rs.colorizer()
     try:
         pipeline.start(config)
+        time.sleep(2)
         profile = pipeline.get_active_profile()
         device = profile.get_device()
         # print_available_sensors(device)
-        print(f"[INFO] Streaming with device {device.get_info(camera_info.name)} (serial number: {device.get_info(camera_info.serial_number)})")
+        print(f"[INFO] Streaming with device {device.get_info(rs.camera_info.name)} (serial number: {device.get_info(rs.camera_info.serial_number)})")
         while profile is not None:
             frames = pipeline.wait_for_frames()
             depth_frame = frames.get_depth_frame()
@@ -37,13 +40,13 @@ def main():
             
             # Detect markers
             success, ids, T_list = detectionNode.estimate_marker_poses_from_frame(color_frame)
-            cam_robot_T_list = []
+            robot_cam_T_list = []
             if success:
                 for id, T_cam_marker in zip(ids, T_list):
                     if id[0] in marker_robot_ids:
                         T_cam_robot = T_cam_marker @ marker_robot_T_list[id[0]]
-                        cam_robot_T_list.append(T_cam_robot)
-                save_multi_transforms(ids, cam_robot_T_list, Path(__file__).parent.parent/'config'/'cam2robot.yaml')
+                        robot_cam_T_list.append(invert_transform(T_cam_robot))
+                save_multi_transforms(ids, robot_cam_T_list, Path(__file__).parent.parent/'config'/'robot2cam.yaml')
                 break
 
             # Show frame in opencv
@@ -63,12 +66,13 @@ def main():
 def test_cam():
     pipeline, config = initialize_realsense_camera()
     colorizer = rs.colorizer()
+    pipeline.start(config)
+    time.sleep(2) # wait for pipeline completely started
     try:
-        pipeline.start(config)
         profile = pipeline.get_active_profile()
         device = profile.get_device()
         # print_available_sensors(device)
-        print(f"[INFO] Streaming with device {device.get_info(camera_info.name)} (serial number: {device.get_info(camera_info.serial_number)})")
+        print(f"[INFO] Streaming with device {device.get_info(rs.camera_info.name)} (serial number: {device.get_info(rs.camera_info.serial_number)})")
         while profile is not None:
             frames = pipeline.wait_for_frames()
             depth_frame = frames.get_depth_frame()

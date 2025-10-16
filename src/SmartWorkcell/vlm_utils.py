@@ -1,3 +1,4 @@
+from scipy.spatial.transform import Rotation as scipyRot
 from typing import List, Tuple
 import torch
 import pyrealsense2 as rs
@@ -7,10 +8,29 @@ import numpy as np
 from sklearn.decomposition import PCA
 import open3d as o3d
 import supervision as sv
-import yaml
 import matplotlib.pyplot as plt
 from PIL import Image
-import cv2
+from SmartWorkcell.calibration_utils import make_transform_matrix
+from pathlib import Path
+
+def get_project_info() -> Tuple[Path]:
+    """Call this func from anywher to get the project root, config, io and src"""
+    current_path = Path.cwd()
+
+    # Search upward for the folder named "SmartWorkcell"
+    for parent in current_path.parents:
+        if (parent / "config").exists() and (parent / "src/SmartWorkcell").exists():
+            PROJECT_ROOT = parent
+            break
+    else:
+        raise RuntimeError("SmartWorkcell root not found")
+    
+    DEVICE = 'cuda'
+    CONFIG_DIR = PROJECT_ROOT / "config"
+    IO_DIR = PROJECT_ROOT / "io"
+    SRC_DIR = PROJECT_ROOT / "src"
+    print(f'project_root: {PROJECT_ROOT}\nconfig dir: {CONFIG_DIR}\nio dir: {IO_DIR}\nsrc dir: {SRC_DIR}')
+    return PROJECT_ROOT, CONFIG_DIR, IO_DIR, SRC_DIR
 
 def load_models(gdino_checkpoint='config/gdino/weights/groundingdino_swinb_cogcoor.pth',
                 gdino_config='config/gdino/GroundingDINO_SwinB_cfg.py',
@@ -202,7 +222,7 @@ def predict_and_annotate(model: Model, predictor: Predictor, img_path: str, capt
     
     return labels, bboxes, sam_result
 
-def annotate(image, bboxes, labels, masks):
+def annotate(image, bboxes: sv.Detections, labels: List[str], masks: sv.Detections):
     """This function overwrite result on image."""
     customlabels = [f'{detected_obj} {confidence:2f}'
                 for detected_obj, confidence in zip(labels, bboxes.confidence)]
@@ -215,7 +235,7 @@ def annotate(image, bboxes, labels, masks):
     annotated_img = mask_annotator.annotate(scene=annotated_img, detections=masks)
     return annotated_img
 
-def enforce_right_hand_rule(axes):
+def enforce_right_hand_rule(axes: np.ndarray) -> np.ndarray:
     """Overwrite axes, ensure it follows right-hand rule"""
     z_axis = axes[2]
     z_cross = np.cross(axes[0], axes[1])
@@ -224,7 +244,7 @@ def enforce_right_hand_rule(axes):
         axes[2] = -axes[2]
     return axes
 
-def remove_pcl_noise(pcl, nb_neighbors=20, std_ratio=2.0):
+def remove_pcl_noise(pcl: np.ndarray, nb_neighbors=20, std_ratio=2.0) -> np.ndarray:
     """Overwrite pcl, denoise it."""
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(pcl)
@@ -232,23 +252,17 @@ def remove_pcl_noise(pcl, nb_neighbors=20, std_ratio=2.0):
     pcl = np.asarray(cl.points)
     return pcl
 
-def estimate_axes_from_pcl_list(pcl_list: List) -> List:
-    """Retrive a list of axes for all pcl in pcl_list"""
+def axes2matrix(axes: np.ndarray, centroid: np.ndarray) -> np.ndarray:
+    """Convert axes and centroid to 4x4 homogeneous transformation matrix."""
+    return make_transform_matrix(R=axes.T,t=centroid)
+
+def estimate_axes_from_pcl(pcl: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Estimate axes and centroid from pcl."""
     pca = PCA(n_components=3)
-    axes_list = []
-    for pcl in pcl_list:
-        pca.fit(remove_pcl_noise(pcl))
-        axes = enforce_right_hand_rule(pca.components_)
-        axes_list.append(axes)
-    return axes_list
-from scipy.spatial.transform import Rotation as scipyRot
-def axes2pose(axes: np.ndarray, centroid: np.ndarray):
-    R_mtx = axes.T # axes stores xyz as rows, R_mtx expect xyz as cols
-    rot = scipyRot.from_matrix(R_mtx)
-    quat = rot.as_quat()
-    
-    # Compute transformation matrix
-    
+    pca.fit(remove_pcl_noise(pcl))
+    axes = enforce_right_hand_rule(pca.components_)
+    centroid = np.mean(pcl, axis=0)
+    return axes, centroid
 
 def draw_and_show_axes(pcl_list: List, axes_list: List, axis_length: float=0.05):
     """Show axes on pcl, press 'q' to quit."""
@@ -278,7 +292,7 @@ def draw_and_show_axes(pcl_list: List, axes_list: List, axis_length: float=0.05)
     # Visualize
     o3d.visualization.draw_geometries(pcd_list + line_set_list)
     
-def visualize_pcls(pcl_list: List, colors=None):
+def visualize_pcl(pcl_list: List, colors=None):
     """Example usage:
     visualize_pcls(
         pcl_list,

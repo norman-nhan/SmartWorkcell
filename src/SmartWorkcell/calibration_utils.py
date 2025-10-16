@@ -1,6 +1,8 @@
+import tf.transformations
+from geometry_msgs.msg import Pose
 import yaml
 import numpy as np
-from typing import Tuple
+from typing import Tuple, List
 import cv2
 
 def save_camera_calibration(path, cam_mtx, dist_coeffs=None, overall_rms=None, reproj_err_mean=None, reproj_err_total=None):
@@ -22,11 +24,8 @@ def save_camera_calibration(path, cam_mtx, dist_coeffs=None, overall_rms=None, r
         )
     print(f'[INFO] Saved camera intrinsic to {path}')
 
-def get_camera_intrinsic(path) -> Tuple[np.ndarray, np.ndarray]:
-    """Return  2 np.ndarray from a yaml file:
-    - camera matrix
-    - distortion coefficients 
-    """
+def load_camera_intrinsic(path) -> Tuple[np.ndarray, np.ndarray]:
+    """Return camera matrix and distortion coefficients from a yaml file."""
     with open(path, 'r') as f:
         data = yaml.safe_load(f)
     return (np.array(data["camera_matrix"]), np.array(data["dist_coeffs"]))
@@ -58,7 +57,7 @@ def invert_transform(T):
     T_inv[:3, 3] = -R.T @ t
     return T_inv
 
-def save_multi_transforms(ids, T_list, path):
+def save_multi_transforms(ids: List[int], T_list: List[np.ndarray], path):
     """Save multiple transform matrices to a YAML file."""
     data = {}
     for id, T in zip(ids, T_list):
@@ -88,19 +87,16 @@ def load_multi_transforms(path):
         T_list.append(np.array(value['transform_mtx'], dtype=float))
     return ids, T_list
 
-def save_transformation_mtx(T, path):
-    """Save transform matrix to a YAML file."""
-    data = {
-        'transform_mtx': T.tolist()
-    }
-    with open(path, 'w') as f:
-        yaml.dump(data, f, sort_keys=False, default_flow_style=None, width=120, indent=2)
-    print(f"[INFO] Saved transformation matrix to {path}")
-
-def load_transform_mtx(path):
-    """Load 4x4 transform matrix from YAML file."""
-    with open(path, 'r') as f:
-        data = yaml.safe_load(f)
-    R = np.array(data['rotation_matrix'])
-    t = np.array(data['translation'])
-    return make_transform_matrix(R, t)
+def matrix2pose(T: np.ndarray) -> Pose:
+    pose = Pose()
+    pose.position.x = T[0, 3]
+    pose.position.y = T[1, 3]
+    pose.position.z = T[2, 3]
+    
+    quat = tf.transformations.quaternion_from_matrix(T)
+    pose.orientation.x = quat[0]
+    pose.orientation.y = quat[1]
+    pose.orientation.z = quat[2]
+    pose.orientation.w = quat[3]
+    
+    return pose

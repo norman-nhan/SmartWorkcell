@@ -6,7 +6,7 @@ import cv2.aruco as aruco
 import numpy as np
 import time
 from SmartWorkcell.calibration_utils import (
-    get_camera_intrinsic, vectors2matrix,
+    load_camera_intrinsic, vectors2matrix,
     save_multi_transforms
 )
 import concurrent.futures
@@ -105,7 +105,7 @@ def main():
     args = parser.parse_args()
 
     # Load camera intrinsic
-    cam_mtx, dist_coeffs = get_camera_intrinsic(args.calibration_path)
+    cam_mtx, dist_coeffs = load_camera_intrinsic(args.calibration_path)
 
     node = ArucoDetectionNode(
         dictionary=getattr(aruco, args.dictionary),

@@ -23,6 +23,7 @@ def initialize_realsense_camera(serial:str =None):
     # Enable color and depth streams
     config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
     config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+    
     return pipeline, config
 
 def print_connected_devices_info(ctx:rs.context):
