@@ -4,7 +4,7 @@
 ```bash
 cd ~/nhan_ws/src/SmartWorkcell
 python3 setup.py sdist
-pip install dist/SmartWorkcell-0.0.1.tar.gz
+pip install -e dist/SmartWorkcell-0.0.1.tar.gz
 ```
 ### Realsense2
 After installed realsense sdk from their website don't forget to add udev rule if it's not installed yet.
