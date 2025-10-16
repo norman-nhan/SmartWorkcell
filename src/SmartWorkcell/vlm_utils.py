@@ -1,3 +1,5 @@
+from typing import List, Tuple
+import torch
 import pyrealsense2 as rs
 from groundingdino.util.inference import Model
 from nanosam.utils.predictor import Predictor
@@ -7,6 +9,8 @@ import open3d as o3d
 import supervision as sv
 import yaml
 import matplotlib.pyplot as plt
+from PIL import Image
+import cv2
 
 def load_models(gdino_checkpoint='config/gdino/weights/groundingdino_swinb_cogcoor.pth',
                 gdino_config='config/gdino/GroundingDINO_SwinB_cfg.py',
@@ -52,129 +56,247 @@ def bbox2points(bbox):
 
     return points, point_labels
 
-def get_pcl_from_mask(binary_mask, depth_map, intrinsics):
-    """Get 3D point cloud within a given mask.
+
+def get_pcl_from_mask(binary_mask, depth, cam_mtx, device='cuda', depth_scale: float=1.0) -> torch.Tensor:
+    """Get 3D point cloud within binary mask from depth directly on GPU.
     
     Args
     ----
     binary_mask: np.ndarray
         detected object mask, shape (H, W), dtype=bool
-    depth_map: np.ndarray
+    depth: np.ndarray
         contains depth values of an image, shape (H, W), dtype=float32, unit in meters
-    intrinsics: dict
-        camera intrinsics, contains fx, fy, cx, cy, depth_scale.
+    cam_mtx: np.ndarray or tensor
+        3x3 amera matrix
+    
+    Returns
+    -------
+    pcl: tensor
+        point cloud within the mask, shape (N, 3), dtype=float32, unit in meters. 
+    """
+    # Simplify camera matrix
+    fx = cam_mtx[0,0]
+    fy = cam_mtx[1,1]
+    cx = cam_mtx[0,2]
+    cy = cam_mtx[1,2]
+    # Convert numpy to tensor
+    binary_mask = torch.as_tensor(np.array(binary_mask, copy=True), device=device)
+    depth = torch.as_tensor(np.array(depth, copy=True), device=device, dtype=torch.float32)
+
+    # Get coordinates where mask is True
+    ys, xs = torch.nonzero(binary_mask, as_tuple=True)
+    # Get depth at those values
+    depth = depth[ys, xs] * depth_scale
+
+    # Compute point cloud (N, 3)
+    pcl = torch.zeros((xs.shape[0], 3), device=device, dtype=torch.float32)
+    pcl[:, 0] = (xs - cx) * depth / fx
+    pcl[:, 1] = (ys - cy) * depth / fy
+    pcl[:, 2] = depth
+    
+    return pcl # stay on gpu
+
+def get_pcl_from_mask(binary_mask: np.ndarray, depth: np.ndarray, 
+                      cam_mtx: np.ndarray, depth_scale: float=1.0) -> np.ndarray:
+    """Get 3D point cloud within binary mask from depth directly on GPU.
+    
+    Args
+    ----
+    binary_mask: np.ndarray
+        True/False mask
+    depth: np.ndarray
+        contains depth values of an image
+    cam_mtx: np.ndarray
+        3x3 camera matrix
     
     Returns
     -------
     pcl: np.ndarray
-        point cloud within the mask, shape (N, 3), dtype=float32, unit in meters. 
+        point cloud within given mask
     """
-    ys, xs = np.where(binary_mask) # Get masked pixel coordinates
-    depth = depth_map[ys, xs] * intrinsics["depth_scale"]# Get depth
+    # Simplify camera matrix
+    fx = cam_mtx[0,0]
+    fy = cam_mtx[1,1]
+    cx = cam_mtx[0,2]
+    cy = cam_mtx[1,2]
+    
+    # Get coordinates where mask is True
+    ys, xs = np.nonzero(binary_mask)
+    # Get depth at those values
+    depth = depth[ys, xs] * depth_scale
 
-    pcl = np.zeros((len(xs), 3), dtype=np.float32) # (N, 3) = (len(xs), 3)
-    pcl[:, 0] = (xs - intrinsics["cx"]) * depth / intrinsics["fx"]
-    pcl[:, 1] = (ys - intrinsics["cy"]) * depth / intrinsics["fy"]
+    # Compute point cloud (N, 3)
+    pcl = np.zeros((xs.shape[0], 3), dtype=np.float32)
+    pcl[:, 0] = (xs - cx) * depth / fx
+    pcl[:, 1] = (ys - cy) * depth / fy
     pcl[:, 2] = depth
+    
     return pcl
 
-def get_binary_mask_using_nanosam(bbox, predictor):
-    """Retrive binary mask from a bounding box using nanosam.
-    
-    Returns
-    -------
-    - binary_mask: True/False mask.
-    
-    Args
-    ----
-    - bbox: bounding box
-    - sam_predictor: nanosam predictor"""
-    points, point_labels = bbox2points(bbox.xyxy[0])
-    mask, _, _ = predictor.predict(points, point_labels)
-    binary_mask = (mask[0, 0] > 0).detach().cpu().numpy() # True/False mask, shape: (H, W)
-    return binary_mask
+def predict_with_bbox(bboxes: sv.Detections, predictor: Predictor, img: Image) -> List[dict]:
+    """Retrive sam_result as a list of dict to convert to sv.Detection for visualization.
 
-def get_annotate_image(image, bboxes, labels, sv_masks):
+    Args:
+        bboxes (sv.Detections): predicted bboxes from groundingdino
+        predictor (Predictor): nanosam predictor class
+        img (Image): PIL.Image
+
+    Returns:
+        sam_result (List[dict]):
+        dict = {
+            'area': int(binary_mask.sum().item()),
+            'bbox': bboxes[i].xyxy[0],
+            'segmentation': binary_mask.squeeze(0).cpu().numpy(),
+        }
+    """
+    predictor.set_image(img)
+    sam_result = []
+
+    for i in range(len(bboxes)):
+        points, point_labels = bbox2points(bboxes[i].xyxy[0])
+        mask, mask_iou, _ = predictor.predict(points, point_labels)
+        # Compute binary mask using highest iou score mask
+        max_iou, idx = torch.max(mask_iou, dim=-1) # expect mask_iou is (1, 4) dim tensor
+        binary_mask = (mask[0, idx] > 0) # grab first batch with highest iou score mask 
+        result = {
+            'area': int(binary_mask.sum().item()),
+            'bbox': bboxes[i].xyxy[0],
+            'segmentation': binary_mask.squeeze(0).cpu().numpy(),
+        }
+        sam_result.append(result)
+    return sam_result
+
+def predict_and_annotate(model: Model, predictor: Predictor, img_path: str, caption: str) -> Tuple[List[str], List[sv.Detections], List[dict]]:
+    """Retrive a tuple of detected labels, bboxes, and sam_result and visualize result.
+    
+
+    Args:
+        model (Model): GroundingDINO model
+        predictor (Predictor): nanosam predictor
+        img_path (str): path to image . I might change in future when camera is used.
+        caption (str): target objects to be detected
+
+    Returns:
+        labels (List[str]): detected labels
+        bboxes (List[sv.Detection]): detected bounding box from groundingdino
+        sam_result (List[dict]): 
+        dict = {
+            'area': int(binary_mask.sum().item()),
+            'bbox': bboxes[i].xyxy[0],
+            'segmentation': binary_mask.squeeze(0).cpu().numpy(),
+        }
+    """
+    # Detect bounding box with text
+    pil_img = Image.open(img_path).convert("RGB")
+    img = np.array(pil_img)
+    bboxes, labels = model.predict_with_caption(
+        image=img,
+        caption=caption
+    )
+
+    # Detect mask with bounding box
+    sam_result = predict_with_bbox(bboxes=bboxes, predictor=predictor, img=pil_img)
+    masks = sv.Detections.from_sam(sam_result=sam_result)
+    annotate(pil_img, bboxes=bboxes, labels=labels, masks=masks)
+    plt.imshow(pil_img)
+    
+    return labels, bboxes, sam_result
+
+def annotate(image, bboxes, labels, masks):
+    """This function overwrite result on image."""
+    customlabels = [f'{detected_obj} {confidence:2f}'
+                for detected_obj, confidence in zip(labels, bboxes.confidence)]
+
     box_annotator = sv.BoxAnnotator(color_lookup=sv.ColorLookup.INDEX)
     label_annotator = sv.LabelAnnotator(color_lookup=sv.ColorLookup.INDEX)
     mask_annotator = sv.MaskAnnotator(color_lookup=sv.ColorLookup.INDEX)
-    out_image = box_annotator.annotate(scene=image.copy(), detections=bboxes)
-    out_image = label_annotator.annotate(scene=out_image, detections=bboxes, labels=labels)
-    out_image = mask_annotator.annotate(scene=out_image, detections=sv_masks)
-    plt.imshow(out_image)
-    
-    return out_image
+    annotated_img = box_annotator.annotate(scene=image, detections=bboxes)
+    annotated_img = label_annotator.annotate(scene=annotated_img, detections=bboxes, labels=customlabels)
+    annotated_img = mask_annotator.annotate(scene=annotated_img, detections=masks)
+    return annotated_img
 
 def enforce_right_hand_rule(axes):
-    """Enfore a given set of axes to be right-handed.
-    
-    Args
-    ----
-    axes: np.ndarray 
-        An (3, 3) array, contains 3 principal axes as rows.
-        
-        Example: axes: (3, 3), [[-0.08448856  0.09596848  0.9917922 ]
-                [ 0.994619    0.06801371  0.07814818]
-                [-0.0599557   0.993058   -0.10119846]]
-    
-    Returns
-    -------
-    axes: np.ndarray
-        A set of axes following right-hand rule.
-    """
-    x_axis = axes[0]
-    y_axis = axes[1]
+    """Overwrite axes, ensure it follows right-hand rule"""
     z_axis = axes[2]
-    z_cross = np.cross(x_axis, y_axis)
+    z_cross = np.cross(axes[0], axes[1])
     if np.dot(z_cross, z_axis) < 0:
         # Flip the third axis to ensure right-handedness
         axes[2] = -axes[2]
     return axes
 
-def get_pca_components_of_pcl(pcl):
-    """Return right-handed PCA components of given point cloud."""
-    pca = PCA(n_components=3)
-    pca.fit(pcl)
-    axes = pca.components_
-    axes = enforce_right_hand_rule(axes) # Ensure result is right-handed
-
-    return axes
-
-def remove_outliers_from_pcl(pcl, nb_neighbors=20, std_ratio=2.0):
-    """Return outliers/noise removed pcl."""
+def remove_pcl_noise(pcl, nb_neighbors=20, std_ratio=2.0):
+    """Overwrite pcl, denoise it."""
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(pcl)
     cl, ind = pcd.remove_statistical_outlier(nb_neighbors=nb_neighbors, std_ratio=std_ratio)
-    pcl_denoised = np.asarray(cl.points)
+    pcl = np.asarray(cl.points)
+    return pcl
 
-    return pcl_denoised
-
-def draw_pca_axes_on_pcl(pcl, ax_length=0.05):
-    """Visualize enforced right-handed PCA components on a set of pcl."""
-    # 1. Clean pcl
-    denoised_pcl = remove_outliers_from_pcl(pcl)
+def estimate_axes_from_pcl_list(pcl_list: List) -> List:
+    """Retrive a list of axes for all pcl in pcl_list"""
+    pca = PCA(n_components=3)
+    axes_list = []
+    for pcl in pcl_list:
+        pca.fit(remove_pcl_noise(pcl))
+        axes = enforce_right_hand_rule(pca.components_)
+        axes_list.append(axes)
+    return axes_list
+from scipy.spatial.transform import Rotation as scipyRot
+def axes2pose(axes: np.ndarray, centroid: np.ndarray):
+    R_mtx = axes.T # axes stores xyz as rows, R_mtx expect xyz as cols
+    rot = scipyRot.from_matrix(R_mtx)
+    quat = rot.as_quat()
     
-    # 2. Apply PCA
-    axes = get_pca_components_of_pcl(denoised_pcl)
-    centroid = np.mean(denoised_pcl, axis=0) # center point of pcl
+    # Compute transformation matrix
+    
 
-    # 3. Visualize with Open3D
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(denoised_pcl)
-
-    # Create lines for axes
-    lines = []
-    colors = [[1,0,0], [0,1,0], [0,0,1]]  # X=red, Y=green, Z=blue
-    points = [centroid]
-    for i in range(3):
-        axis_end = centroid + axes[i] * ax_length
-        points.append(axis_end)
-        lines.append([0, i+1])  # from centroid to axis end
-
-    line_set = o3d.geometry.LineSet(
-        points=o3d.utility.Vector3dVector(points),
-        lines=o3d.utility.Vector2iVector(lines),
+def draw_and_show_axes(pcl_list: List, axes_list: List, axis_length: float=0.05):
+    """Show axes on pcl, press 'q' to quit."""
+    pcd_list = []
+    line_set_list = []
+    for pcl, axes in zip(pcl_list, axes_list):
+        # Create pcl
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(pcl)
+        pcd_list.append(pcd)
+        
+        # Create axes
+        lines = []
+        colors = [[1,0,0], [0,1,0], [0,0,1]]
+        origin = np.mean(pcl, axis=0)
+        points = [origin]
+        for i in range(3):
+            axis_end = origin + axes[i] * axis_length
+            points.append(axis_end)
+            lines.append([0, i+1])
+        line_set = o3d.geometry.LineSet(
+            points=o3d.utility.Vector3dVector(points),
+            lines=o3d.utility.Vector2iVector(lines)
+        )
+        line_set.colors = o3d.utility.Vector3dVector(colors)
+        line_set_list.append(line_set)
+    # Visualize
+    o3d.visualization.draw_geometries(pcd_list + line_set_list)
+    
+def visualize_pcls(pcl_list: List, colors=None):
+    """Example usage:
+    visualize_pcls(
+        pcl_list,
+        colors=[[1,0,0]]
     )
-    line_set.colors = o3d.utility.Vector3dVector(colors)
-
-    o3d.visualization.draw_geometries([pcd, line_set])
+    """
+    pcds = []
+    for i, pcl in enumerate(pcl_list):
+        # --- handle GPU tensors ---
+        if isinstance(pcl, torch.Tensor):
+            pcl = pcl.detach().cpu().numpy()
+        
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(pcl)
+        
+        if colors is not None:
+            pcd.paint_uniform_color(colors[i%len(colors)])
+        
+        pcds.append(pcd)
+    
+    o3d.visualization.draw_geometries(pcds)

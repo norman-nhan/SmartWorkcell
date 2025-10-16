@@ -6,3 +6,4 @@ dist_coeffs: [0.0, 0.0, 0.0, 0.0, 0.0]
 dist_model: distortion.brown_conrady
 width: 640
 height: 480
+depth_scale: 0.0010000000474974513
