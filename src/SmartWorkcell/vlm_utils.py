@@ -14,22 +14,31 @@ from SmartWorkcell.calibration_utils import make_transform_matrix
 from pathlib import Path
 
 def get_project_info() -> Tuple[Path]:
-    """Call this func from anywher to get the project root, config, io and src"""
-    current_path = Path.cwd()
+    """Retrive project root, config dir, etc.
+    
+    Returns
+    -------
+    The following dirs are returned in order.
+    - PROJECT_ROOT
+    - CONFIG_DIR
+    - IO_DIR
+    - SRC_DIR
+    """
+    current_path = Path(__file__).resolve()
 
-    # Search upward for the folder named "SmartWorkcell"
+    # search upwards for 'config' folder
     for parent in current_path.parents:
-        if (parent / "config").exists() and (parent / "src/SmartWorkcell").exists():
+        if (parent / "config").exists() and (parent / "src").exists():
             PROJECT_ROOT = parent
             break
     else:
-        raise RuntimeError("SmartWorkcell root not found")
-    
-    DEVICE = 'cuda'
+        raise RuntimeError(f"SmartWorkcell root not found from {current_path}")
+
     CONFIG_DIR = PROJECT_ROOT / "config"
     IO_DIR = PROJECT_ROOT / "io"
     SRC_DIR = PROJECT_ROOT / "src"
-    print(f'project_root: {PROJECT_ROOT}\nconfig dir: {CONFIG_DIR}\nio dir: {IO_DIR}\nsrc dir: {SRC_DIR}')
+
+    print(f"project_root: {PROJECT_ROOT}")
     return PROJECT_ROOT, CONFIG_DIR, IO_DIR, SRC_DIR
 
 def load_models(gdino_checkpoint='config/gdino/weights/groundingdino_swinb_cogcoor.pth',
