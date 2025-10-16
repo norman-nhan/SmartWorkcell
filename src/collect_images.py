@@ -5,6 +5,9 @@ import cv2
 import os
 from pathlib import Path
 import argparse
+from SmartWorkcell.vlm_utils import get_project_info
+
+PROJECT_ROOT, CONFIG_DIR, IO_DIR, SRC_DIR = get_project_info()
 
 class RealsenseCameraNode():
     def __init__(self, serial_number=None, image_save_dir='io/test', save_depth=False):
@@ -66,7 +69,8 @@ class RealsenseCameraNode():
             depth_map_path = os.path.join(self.image_save_dir, f'depth_map_{fname}.npy')
             cv2.imwrite(depth_path, depth_image)
             np.save(depth_map_path, depth_map)
-            print(f"[INFO] Saved colored depth image to {depth_path} and depth map to {depth_map_path}")
+            print(f"[INFO] Saved colored depth image to {depth_path}")
+            print(f"[INFO] Saved depth rs.format.z16 to {depth_map_path}")
 
     def streaming(self):
         # Start streaming
@@ -74,7 +78,7 @@ class RealsenseCameraNode():
         profile = self.pipeline.get_active_profile()
         device = profile.get_device()
         print(f"\n[INFO] Streaming device: {device.get_info(rs.camera_info.name)} (Serial: {device.get_info(rs.camera_info.serial_number)})")
-
+        print("\n[INFO] Press 'q' to quit and 's' to save image.\n")
         try:
             while profile is not None:
                 # wait for a pair of depth and color
@@ -116,7 +120,7 @@ class RealsenseCameraNode():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--serial_number", type=str)
-    parser.add_argument("-i", "--image_save_dir", type=str, default="io/test")
+    parser.add_argument("-i", "--image_save_dir", type=str, default=IO_DIR/'calibration'/'input')
     parser.add_argument("--save_depth", action="store_true")
     args = parser.parse_args()
     
