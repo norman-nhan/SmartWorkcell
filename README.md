@@ -11,7 +11,8 @@ pip install -e .
 ```
 Replace `$YOUR_WS` which your working directory.
 ## Getting start
-
+### (Optional) Camera calibration
+For this project I'm using RealSense camera factory calibrated data.
 **TODO**: 
 Make a pipeline that open camera 
 -> detect marker (every 10mins or after service call)
