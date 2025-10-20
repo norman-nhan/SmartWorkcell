@@ -1,11 +1,11 @@
-from SmartWorkcell.ArucoDetection import ArucoDetectionNode
+from pysmartworkcell.ArucoDetection import ArucoDetectionNode
 import cv2.aruco as aruco
 import cv2
-from SmartWorkcell.calibration_utils import (
-    load_camera_intrinsic, load_multi_transforms, save_multi_transforms,
+from pysmartworkcell.calibration_utils import (
+    load_camera_intrinsic, load_transform_mtx, save_transform_mtx,
     invert_transform
 )
-from SmartWorkcell.realsense_utils import initialize_realsense_camera, print_available_sensors
+from pysmartworkcell.realsense_utils import initialize_realsense_camera, print_available_sensors
 import pyrealsense2 as rs
 import numpy as np
 from pathlib import Path
@@ -13,7 +13,7 @@ import time
 
 def main():
     # Load transformation matrix from marker -> robot
-    marker_robot_ids, marker_robot_T_list = load_multi_transforms('config/marker2robot.yaml')
+    marker_robot_ids, marker_robot_T_list = load_transform_mtx('config/marker2robot.yaml')
     cam_mtx, dist_coeffs = load_camera_intrinsic('config/realsense_origin.yaml')
     detectionNode = ArucoDetectionNode(
         aruco.DICT_4X4_50,
@@ -39,14 +39,14 @@ def main():
             depth_frame = np.asanyarray(depth_frame.get_data())
             
             # Detect markers
-            success, ids, T_list = detectionNode.estimate_marker_poses_from_frame(color_frame)
+            success, ids, T_list = detectionNode.estimate_maker_pose_from_frame(color_frame)
             robot_cam_T_list = []
             if success:
                 for id, T_cam_marker in zip(ids, T_list):
                     if id[0] in marker_robot_ids:
                         T_cam_robot = T_cam_marker @ marker_robot_T_list[id[0]]
                         robot_cam_T_list.append(invert_transform(T_cam_robot))
-                save_multi_transforms(ids, robot_cam_T_list, Path(__file__).parent.parent/'config'/'robot2cam.yaml')
+                save_transform_mtx(ids, robot_cam_T_list, Path(__file__).parent.parent/'config'/'robot2cam.yaml')
                 break
 
             # Show frame in opencv
