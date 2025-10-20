@@ -140,10 +140,13 @@ class ObjectDetectNode():
                 }
                 obj_list.append(obj)
             message = f"Detected object: {labels}"
+        
         rospy.loginfo(f'detected object: {obj_list}')
         return DetectObjectPoseResponse(
+            poses = [obj['pose'] for obj in obj_list],
+            labels = [obj['label'] for obj in obj_list],
             success=success,
-            message=message
+            message=message,
         )
 
 if __name__ == "__main__":

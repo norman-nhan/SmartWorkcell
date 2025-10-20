@@ -1,5 +1,6 @@
 string caption
 ---
-geometry_msgs/Pose Pose
+geometry_msgs/Pose[] poses
+string[] labels
 bool success
 string message
