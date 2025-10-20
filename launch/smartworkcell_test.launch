@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+    <include file="$(find smartworkcell)/launch/rs_d435_node.launch"/>
+    <include file="$(find smartworkcell)/launch/object_detect_node.launch"/>
+    
+</launch>

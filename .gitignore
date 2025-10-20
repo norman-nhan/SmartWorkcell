@@ -7,3 +7,4 @@ dist
 src/SmartWorkcell.egg-info
 config/gdino
 config/nanosam
+src/pysmartworkcell.egg-info

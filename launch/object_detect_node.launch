@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+    <rosparam command="load" file="$(find smartworkcell)/config/object_detect_params.yaml"/> 
+    <node name="object_detect_node" pkg="smartworkcell" type="ObjectDetectNode.py"  output="screen" respawn="false" respawn_delay="0" args="">
+    </node>
+    
+</launch>

@@ -1,0 +1,10 @@
+# model weight, config, engine path 
+gdino_checkpoint: /home/non/nhan_ws/src/smartworkcell/config/gdino/weights/groundingdino_swinb_cogcoor.pth
+gdino_config: /home/non/nhan_ws/src/smartworkcell/config/gdino/GroundingDINO_SwinB_cfg.py
+sam_image_encoder: /home/non/nhan_ws/src/smartworkcell/config/nanosam/resnet18_image_encoder.engine
+sam_mask_encoder: /home/non/nhan_ws/src/smartworkcell/config/nanosam/mobile_sam_mask_decoder.engine
+
+# camera calibration path
+camera_config: /home/non/nhan_ws/src/smartworkcell/config/d435_origin.yaml
+color_topic: /camera/color/image_raw
+aligned_depth_topic: /camera/aligned_depth_to_color/image_raw

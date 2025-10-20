@@ -1,10 +1,10 @@
 [project]
-name = "SmartWorkcell"
+name = "pysmartworkcell"
 version = "1.0"
 authors = [
   { name="Nyan", email="tangptnhan@gmail.com" },
 ]
-description = "Picking & Place using VLMs."
+description = "Object detection using VLMs."
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
