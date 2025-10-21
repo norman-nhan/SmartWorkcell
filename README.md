@@ -27,17 +27,19 @@ source devel/setup.bash
 > When working with virtualenv, make sure your virtualenv can see your local environment which has ROS installed.
 > You can check it by using `echo $PYTHONPATH`. If `$PYTHONPATH` shows ros's dist-packages then you're good to go!
 ## Getting start
-### (Optional) Camera calibration
-For this project I'm using RealSense camera factory calibrated data.
-
-**TODO**: 
-Make a pipeline that open camera 
--> detect marker (every 10mins or after service call)
--> compute T_cam_marker 
--> read T_marker_robot 
--> compute T_robot_cam
--> detect object 
--> compute T_cam_object 
--> use T_robot_cam computed before to compute T_robot_object
--> Convert T_robot_object to Pose() that MoveIt can use
--> Define Pick & Place with MoveIt (Next step!)
+- Run realsense camera node
+  ```bash
+  roslaunch smartworkcell rs_d435_node.launch
+  ```
+- Run object detection node (groundingdino and nanosam)
+  ```bash
+  roslaunch smartworkcell object_detect_node.launch
+  ```
+- Run camera-robot calibration node
+  ```bash
+  roslaunch camera_calibration_node.launch
+  ```
+- Run all nodes
+  ```bash
+  roslaunch smartworkcell smartworkcell_test.launch
+  ```
