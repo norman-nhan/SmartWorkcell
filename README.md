@@ -10,7 +10,7 @@ This package using GroundingDINO and NanoSAM to detect object pose and MoveIt to
 ```bash
 cd $YOUR_WS
 git clone https://github.com/norman-nhan/SmartWorkcell.git
-cd SmartWorkcell
+cd smartWorkcell
 pip install -r requirements.txt
 python3 setup.py sdist
 pip install -e .
@@ -25,7 +25,7 @@ source devel/setup.bash
 ```
 > [!TIP]
 > When working with virtualenv, make sure your virtualenv can see your local environment which has ROS installed.
-> You can check it by using `echo $PYTHONPATH`
+> You can check it by using `echo $PYTHONPATH`. If `$PYTHONPATH` shows ros's dist-packages then you're good to go!
 ## Getting start
 ### (Optional) Camera calibration
 For this project I'm using RealSense camera factory calibrated data.
