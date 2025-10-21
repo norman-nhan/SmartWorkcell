@@ -38,8 +38,8 @@ def main():
             # Save image and depth
             key = cv2.waitKey(1)
             if key == ord('s'):
-                cv2.imwrite('../io/color.png', color_img)
-                np.save('../io/depth.npy', depth16)
+                cv2.imwrite(pkg_root/'io'/'color.png', color_img)
+                np.save(pkg_root/'io'/'depth.npy', depth16)
                 print(f'Image & Depth are saved.')
             if key == ord('q'):
                 break
