@@ -5,6 +5,8 @@
     <arg name="camera"                default="camera"/>
 
     <group ns="$(arg camera)">
+        <arg name="initial_reset" value="true"/>
+        
         <include file="$(find realsense2_camera)/launch/includes/nodelet.launch.xml">
             <arg name="depth_width" value="640"/>
             <arg name="depth_height" value="480"/>

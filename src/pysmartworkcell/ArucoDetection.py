@@ -4,7 +4,7 @@ import cv2.aruco as aruco
 import numpy as np
 from pysmartworkcell.calibration_utils import vectors2matrix
 
-class ArucoDetectionNode:
+class ArucoDetection:
     def __init__(self, dictionary: int, cam_matrix: np.ndarray, dist_coeffs: np.ndarray, parameters=None, marker_length: float=0.1):        
         # Tuning parameters
         self.parameters = parameters if parameters is not None else aruco.DetectorParameters()

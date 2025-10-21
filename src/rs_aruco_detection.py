@@ -1,6 +1,6 @@
 import time
 import numpy as np
-from pysmartworkcell.ArucoDetection import ArucoDetectionNode
+from pysmartworkcell.ArucoDetection import ArucoDetection
 from pysmartworkcell import (
     calibration_utils as calib_utils,
     realsense_utils as rs_utils
@@ -11,7 +11,7 @@ from pyrealsense2 import camera_info
 def detect(dict: int, marker_len: float, calib_path: str):
     pkg_root = calib_utils.find_pkg_path()
     cam_mtx, dist_coeffs = calib_utils.load_camera_intrinsic(calib_path)
-    detectNode = ArucoDetectionNode(
+    detectNode = ArucoDetection(
         dict, cam_matrix=cam_mtx, dist_coeffs=dist_coeffs, marker_length=marker_len
     )
     pipeline, config = rs_utils.initialize_realsense_camera()

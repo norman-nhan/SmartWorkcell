@@ -118,3 +118,14 @@ def matrix2pose(T: np.ndarray) -> Pose:
     pose.orientation.w = quat[3]
     
     return pose
+
+def matrix2quat(T: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Return translation and quaternion from 4x4 translation matrix.
+    
+    Returns 
+    -------
+    Tuple[translation: np.ndarray, quat: np.ndarray]
+    """
+    translation = T[0:3, 3]
+    quat = tf.transformations.quaternion_from_matrix(T)
+    return (translation, quat)

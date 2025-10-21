@@ -1,4 +1,4 @@
-from pysmartworkcell.ArucoDetection import ArucoDetectionNode
+from pysmartworkcell.ArucoDetection import ArucoDetection
 import cv2.aruco as aruco
 import cv2
 from pysmartworkcell.calibration_utils import (
@@ -15,7 +15,7 @@ def main():
     # Load transformation matrix from marker -> robot
     marker_robot_ids, marker_robot_T_list = load_transform_mtx('config/marker2robot.yaml')
     cam_mtx, dist_coeffs = load_camera_intrinsic('config/realsense_origin.yaml')
-    detectionNode = ArucoDetectionNode(
+    detectionNode = ArucoDetection(
         aruco.DICT_4X4_50,
         cam_mtx, dist_coeffs,
     )
