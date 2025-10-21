@@ -2,5 +2,5 @@
 <launch>
     <include file="$(find smartworkcell)/launch/rs_d435_node.launch"/>
     <include file="$(find smartworkcell)/launch/object_detect_node.launch"/>
-    
+    <include file="$(find smartworkcell)/launch/camera_calibration_node.launch"/>
 </launch>

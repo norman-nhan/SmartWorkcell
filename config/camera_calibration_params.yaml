@@ -1,5 +1,5 @@
 marker_dict: DICT_4X4_50
-marker_length: 0.01
+marker_length: 0.01 # in meters !IMPORTANT change to the correct length if you want translation vector to be correct
 predefined_marker_path: 
 camera_info_topic: /camera/aligned_depth_to_color/camera_info
 color_topic: /camera/color/image_raw

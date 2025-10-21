@@ -2,7 +2,6 @@
 import rospy
 from pysmartworkcell import calibration_utils as calib_utils
 import cv2.aruco as aruco
-from geometry_msgs.msg import Pose
 from sensor_msgs.msg import CameraInfo, Image
 import numpy as np
 from typing import Optional, Tuple, List
