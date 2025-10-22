@@ -67,11 +67,3 @@ To run test and debug for ur3e in simulation (avoid real-world collision/remote-
    ```bash
    roslaunch ur3e_moveit_config moveit_rviz.launch 
    ```
-## Debug
-### ARUCO MARKER DETECTION
-#### For RealSense camera
-Please don't use the calibration result from `calibration.py`. It's not correct. It is the reason causing flicking axes and glitches.
-Highly recommend using the camera intrinsic using `pyrealsense` if you're using RealSense camera.
-#### For general camera
-##### 2025/10/8 Updates
-I have done several tests with different chessboard size and I found that for mac webcam you can use small chessboard size (Checkerboard-A4-40mm-6x4) to increase calibration result.
