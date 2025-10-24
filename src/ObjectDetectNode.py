@@ -27,7 +27,7 @@ class ObjectDetectNode():
             self.detect_obj_pose
         )
         # Create publisher pubs Pose
-        self.pose_pub = rospy.Publisher('object_pose', Pose, queue_size=10)
+        self.pose_pub = rospy.Publisher('detected_obj_pose', Pose, queue_size=10)
         # Create publisher pubs (annotated) Image
         self.img_pub = rospy.Publisher('annotated_image', Image, queue_size=10)
         

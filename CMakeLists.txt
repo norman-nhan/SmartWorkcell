@@ -8,6 +8,8 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs 
   cv_bridge
   message_generation
+  actionlib
+  actionlib_msgs
 )
 catkin_python_setup()  # This enables setup.py integration
 
@@ -20,12 +22,16 @@ add_service_files(
   FILES
   DetectObjectPose.srv
 )
-
-## Generate added messages and services
+add_action_files(
+  DIRECTORY action
+  FILES MoveJoint2ObjPose.action
+)
+## Generate added messages and services, actions
 generate_messages(
   DEPENDENCIES
   std_msgs
   geometry_msgs
+  actionlib_msgs
 )
 
 
