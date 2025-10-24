@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="move_arm_node" pkg="smartworkcell" type="MoveArmNode.py"  output="screen" respawn="false" respawn_delay="0" args="">
+    
+    </node>
+    <node name="move_joint_2_obj_pose" pkg="smartworkcell" type="move_joint_2_obj_pose_server.py"  output="screen" respawn="false" respawn_delay="0" args=""/>
+</launch>
