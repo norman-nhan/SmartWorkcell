@@ -106,6 +106,7 @@ def load_transform_mtx(path):
     return ids, T_list
 
 def matrix2pose(T: np.ndarray) -> Pose:
+    """Convert transform matrix to gemometry_msgs.msg.Pose"""
     pose = Pose()
     pose.position.x = T[0, 3]
     pose.position.y = T[1, 3]
@@ -120,7 +121,7 @@ def matrix2pose(T: np.ndarray) -> Pose:
     return pose
 
 def matrix2quat(T: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """Return translation and quaternion from 4x4 translation matrix.
+    """Return translation and quaternion from 4x4 transform matrix.
     
     Returns 
     -------

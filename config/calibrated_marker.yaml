@@ -1,0 +1,6 @@
+# This file contains robot orientation and translation as 4x4 matrix in each marker frame
+'11': 
+  - [0, 0, 0, 0]
+  - [0, 0, 0, 0]
+  - [0, 0, 0, 0]
+  - [0, 0, 0, 1]

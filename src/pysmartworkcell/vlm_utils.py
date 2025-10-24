@@ -240,7 +240,7 @@ def axes2matrix(axes: np.ndarray, centroid: np.ndarray) -> np.ndarray:
     return make_transform_matrix(R=axes.T,t=centroid)
 
 def estimate_axes_from_pcl(pcl: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """Estimate axes and centroid from pcl."""
+    """Estimate axes and centroid from pcl using PCA."""
     pca = PCA(n_components=3)
     pca.fit(remove_pcl_noise(pcl))
     axes = enforce_right_hand_rule(pca.components_)

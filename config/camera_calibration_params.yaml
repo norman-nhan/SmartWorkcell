@@ -1,6 +1,6 @@
 marker_dict: DICT_4X4_50
-marker_length: 0.01 # in meters !IMPORTANT change to the correct length if you want translation vector to be correct
-predefined_marker_path: 
+marker_length: 0.03 # in meters !IMPORTANT change to the correct length if you want translation vector to be correct
 camera_info_topic: /camera/aligned_depth_to_color/camera_info
 color_topic: /camera/color/image_raw
 camera_link: camera_link
+# calibrated_marker_path: # absolute path to file
